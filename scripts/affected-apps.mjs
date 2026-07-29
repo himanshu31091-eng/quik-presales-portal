@@ -24,12 +24,36 @@
  */
 
 import { execSync } from "node:child_process";
-
-const ALL_APPS = ["quikit", "quikscale", "admin", "quikvc", "quikinfra", "auth"];
+import { readdirSync, existsSync } from "node:fs";
+import { join } from "node:path";
 
 function run(cmd) {
   return execSync(cmd, { encoding: "utf8" }).trim();
 }
+
+/**
+ * Deployable apps, discovered from the filesystem rather than hardcoded.
+ *
+ * This used to be a literal list, which silently misreported every app added
+ * after it was written. `quikpresales` was missing, so its changes classified as
+ * "other — no deploy impact" and this check reported that nothing would
+ * redeploy while pushing code that does. A stale allow-list here is worse than
+ * no check at all, because the output looks authoritative.
+ *
+ * Anything under apps/ carrying a package.json is deployable. `_template` is the
+ * scaffold — it is excluded from the npm workspaces at the repo root too.
+ */
+function discoverApps() {
+  const appsDir = join(run("git rev-parse --show-toplevel"), "apps");
+  if (!existsSync(appsDir)) return [];
+  return readdirSync(appsDir, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && e.name !== "_template")
+    .filter((e) => existsSync(join(appsDir, e.name, "package.json")))
+    .map((e) => e.name)
+    .sort();
+}
+
+const ALL_APPS = discoverApps();
 
 function getRange() {
   const [, , a, b] = process.argv;
