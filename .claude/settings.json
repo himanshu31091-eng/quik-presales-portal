@@ -6,7 +6,6 @@
       "Bash(npm install *)",
       "Bash(npm -v)",
       "Bash(export PGBIN=\"/c/Program Files/PostgreSQL/18/bin\")",
-      "Bash(PGPASSWORD=Atharva09 '/c/Program Files/PostgreSQL/18/bin/psql.exe' -U postgres -h localhost -p 5432 -c 'SELECT version\\(\\);')",
       "Bash(export PGPASSWORD=admin)",
       "Bash('/c/Program Files/PostgreSQL/18/bin/psql.exe' -U postgres -h localhost -p 5432 -tc 'SELECT datname FROM pg_database WHERE datname='\\\\''quikit_dev'\\\\'';')",
       "Bash('/c/Program Files/PostgreSQL/18/bin/psql.exe' -U postgres -h localhost -p 5432 -tc 'SELECT 1 FROM pg_database WHERE datname='\\\\''quikit_dev'\\\\''')",
@@ -36,9 +35,13 @@
       "Bash(git config *)",
       "Bash(git add *)",
       "Bash(git diff *)",
-      "Bash(xargs -0 grep -ril \"Atharva09\")",
       "Bash(git commit *)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(rm -f apps/quikpresales/.skip-build)",
+      "Bash(node scripts/affected-apps.mjs main fix/rfp-extraction-timeout)",
+      "Bash(node scripts/affected-apps.mjs main feature/ai-deal-health-and-prd-sections)",
+      "Bash(git stash *)",
+      "Bash(node -e ' *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\user\\AppData\\Local\\Temp\\qs-doc-build\\sections"
