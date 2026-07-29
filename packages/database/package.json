@@ -1,0 +1,35 @@
+{
+  "name": "@quikit/database",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./rls": "./rls.ts"
+  },
+  "scripts": {
+    "postinstall": "prisma generate",
+    "generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:status": "prisma migrate status",
+    "db:migrate:reset": "prisma migrate reset",
+    "db:studio": "prisma studio",
+    "db:seed:e2e": "tsx prisma/seed-e2e.ts",
+    "db:seed:oauth": "tsx prisma/seed-oauth.ts",
+    "db:seed:plans": "tsx prisma/seed-plans.ts",
+    "db:seed:quikvc": "tsx prisma/seed-quikvc.ts",
+    "db:seed:moreyeahs": "tsx prisma/seed-moreyeahs.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "prisma": "^5.7.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.3.3"
+  }
+}

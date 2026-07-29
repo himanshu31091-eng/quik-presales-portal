@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./*"],
+      "@/lib/*": ["./lib/*"],
+      "@/components/*": ["./components/*"],
+      "@/types/*": ["./types/*"],
+      "@quikit/database": ["../../packages/database"],
+      "@quikit/auth": ["../../packages/auth"],
+      "@quikit/auth/*": ["../../packages/auth/*"],
+      "@quikit/ui": ["../../packages/ui"],
+      "@quikit/ui/*": ["../../packages/ui/*"],
+      "@quikit/shared": ["../../packages/shared"],
+      "@quikit/shared/*": ["../../packages/shared/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "../../packages/auth/types.ts"],
+  "exclude": ["node_modules"]
+}

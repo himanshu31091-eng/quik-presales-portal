@@ -1,0 +1,15 @@
+# Never bundle env files — Vercel uses Project Environment Variables.
+# Local .env / .env.local symlinks point at ~/Desktop/QuikIT-Secrets which
+# don't exist in Vercel's build container; bundling them causes stat ENOENT.
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Local-only dev artifacts
+**/.next
+**/.turbo
+**/node_modules
+**/coverage
+
+# Tasks scratchpad
+tasks/

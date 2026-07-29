@@ -1,0 +1,45 @@
+{
+  "name": "quikit",
+  "private": true,
+  "packageManager": "npm@11.11.1",
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "services/*",
+    "!apps/_template"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "dev:quikscale": "turbo dev --filter=quikscale",
+    "dev:auth": "turbo dev --filter=auth",
+    "dev:quikit": "turbo dev --filter=quikit",
+    "dev:admin": "turbo dev --filter=admin",
+    "dev:super-admin": "turbo dev --filter=super-admin",
+    "db:push": "cd packages/database && npx prisma db push",
+    "db:migrate": "cd packages/database && npx prisma migrate dev",
+    "db:migrate:deploy": "cd packages/database && npx prisma migrate deploy",
+    "db:migrate:status": "cd packages/database && npx prisma migrate status",
+    "db:studio": "cd packages/database && npx prisma studio",
+    "db:generate": "cd packages/database && npx prisma generate",
+    "db:sync:quikinfra": "npx prisma db push --schema=packages/database/prisma/schema.prisma --skip-generate",
+    "db:seed:e2e": "cd packages/database && npm run db:seed:e2e",
+    "db:seed:quikvc": "cd packages/database && npm run db:seed:quikvc",
+    "e2e": "cd apps/quikscale && npx playwright test",
+    "e2e:quikit": "cd apps/quikit && npx playwright test",
+    "e2e:all": "npm run e2e && npm run e2e:quikit",
+    "e2e:install": "cd apps/quikscale && npx playwright install --with-deps chromium",
+    "postinstall": "prisma generate --schema=packages/database/prisma/schema.prisma"
+  },
+  "devDependencies": {
+    "autocannon": "^8.0.0",
+    "turbo": "^2.0.0"
+  },
+  "overrides": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Typecheck-only config (`tsc --noEmit`, inherited from base); the
+    // production bundle is built by esbuild (build.mjs). We inherit the base's
+    // module/bundler resolution (how every app typechecks `@quikit/*` workspace
+    // sources) and only pin the Node runtime surface: ES2022 + DOM lib (DOM is
+    // type-only, for the WebRTC signaling types in calling.ts) and node types.
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

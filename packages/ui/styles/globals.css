@@ -1,0 +1,337 @@
+/* Inter served from Google Fonts. rsms.me is not on the apps' CSP allowlist
+   (style-src), so importing from there gets blocked during the OAuth-callback
+   redirect and cascades into a chunk-load timeout. fonts.googleapis.com +
+   fonts.gstatic.com are already allowed by every app's CSP. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   CSS CUSTOM PROPERTIES - THEMING SYSTEM (Single source of truth)
+   ============================================================================ */
+
+:root {
+  --color-primary: #0F172A;
+  --color-primary-light: #F0F4FF;
+  --color-primary-dark: #0C0E1A;
+
+  --color-secondary: #6366F1;
+  --color-secondary-light: #E0E8FF;
+  --color-secondary-dark: #4F46E5;
+
+  --color-success: #10B981;
+  --color-success-light: #D1FAE5;
+  --color-success-dark: #047857;
+
+  --color-warning: #F59E0B;
+  --color-warning-light: #FEF3C7;
+  --color-warning-dark: #B45309;
+
+  --color-danger: #EF4444;
+  --color-danger-light: #FEE2E2;
+  --color-danger-dark: #B91C1C;
+
+  --color-neutral-50: #F8FAFC;
+  --color-neutral-100: #F1F5F9;
+  --color-neutral-200: #E2E8F0;
+  --color-neutral-300: #CBD5E1;
+  --color-neutral-400: #94A3B8;
+  --color-neutral-500: #64748B;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1E293B;
+  --color-neutral-900: #0F172A;
+
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #F8FAFC;
+  --color-bg-tertiary: #F1F5F9;
+
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #64748B;
+  --color-text-tertiary: #94A3B8;
+
+  --color-border: #E2E8F0;
+  --color-border-light: #F1F5F9;
+
+  --color-status-on-track: #10B981;
+  --color-status-behind: #F59E0B;
+  --color-status-critical: #EF4444;
+  --color-status-complete: #6366F1;
+  --color-status-not-started: #94A3B8;
+
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.1);
+
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+
+  --font-family-display: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-family-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-family-mono: "Roboto Mono", monospace;
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.5rem;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-fixed: 1200;
+  --z-modal-backdrop: 1300;
+  --z-modal: 1400;
+  --z-popover: 1500;
+  --z-toast: 1600;
+
+  color-scheme: light;
+}
+
+/* ============================================================================
+   DARK MODE - SYSTEM PREFERENCE
+   ============================================================================ */
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --color-primary: #E2E8F0;
+    --color-primary-light: #0F172A;
+    --color-primary-dark: #F8FAFC;
+
+    --color-secondary: #818CF8;
+    --color-secondary-light: #1E1B4B;
+    --color-secondary-dark: #C7D2FE;
+
+    --color-success: #10B981;
+    --color-success-light: #064E3B;
+    --color-success-dark: #86EFAC;
+
+    --color-warning: #FBBF24;
+    --color-warning-light: #78350F;
+    --color-warning-dark: #FEF08A;
+
+    --color-danger: #F87171;
+    --color-danger-light: #7F1D1D;
+    --color-danger-dark: #FECACA;
+
+    --color-neutral-50: #0F172A;
+    --color-neutral-100: #1E293B;
+    --color-neutral-200: #334155;
+    --color-neutral-300: #475569;
+    --color-neutral-400: #64748B;
+    --color-neutral-500: #94A3B8;
+    --color-neutral-600: #CBD5E1;
+    --color-neutral-700: #E2E8F0;
+    --color-neutral-800: #F1F5F9;
+    --color-neutral-900: #F8FAFC;
+
+    --color-bg-primary: #0F172A;
+    --color-bg-secondary: #1E293B;
+    --color-bg-tertiary: #334155;
+
+    --color-text-primary: #F8FAFC;
+    --color-text-secondary: #94A3B8;
+    --color-text-tertiary: #64748B;
+
+    --color-border: #334155;
+
+    --color-status-on-track: #10B981;
+    --color-status-behind: #FBBF24;
+    --color-status-critical: #F87171;
+    --color-status-complete: #818CF8;
+    --color-status-not-started: #64748B;
+
+    color-scheme: dark;
+  }
+}
+
+/* ============================================================================
+   MANUAL DARK MODE TOGGLE (class-based via next-themes)
+   ============================================================================ */
+
+html.dark {
+  color-scheme: dark;
+  --color-primary: #E2E8F0;
+  --color-primary-light: #0F172A;
+  --color-primary-dark: #F8FAFC;
+
+  --color-secondary: #818CF8;
+  --color-secondary-light: #1E1B4B;
+  --color-secondary-dark: #C7D2FE;
+
+  --color-success: #10B981;
+  --color-success-light: #064E3B;
+  --color-success-dark: #86EFAC;
+
+  --color-warning: #FBBF24;
+  --color-warning-light: #78350F;
+  --color-warning-dark: #FEF08A;
+
+  --color-danger: #F87171;
+  --color-danger-light: #7F1D1D;
+  --color-danger-dark: #FECACA;
+
+  --color-neutral-50: #0F172A;
+  --color-neutral-100: #1E293B;
+  --color-neutral-200: #334155;
+  --color-neutral-300: #475569;
+  --color-neutral-400: #64748B;
+  --color-neutral-500: #94A3B8;
+  --color-neutral-600: #CBD5E1;
+  --color-neutral-700: #E2E8F0;
+  --color-neutral-800: #F1F5F9;
+  --color-neutral-900: #F8FAFC;
+
+  --color-bg-primary: #0F172A;
+  --color-bg-secondary: #1E293B;
+  --color-bg-tertiary: #334155;
+
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #94A3B8;
+  --color-text-tertiary: #64748B;
+
+  --color-border: #334155;
+
+  --color-status-on-track: #10B981;
+  --color-status-behind: #FBBF24;
+  --color-status-critical: #F87171;
+  --color-status-complete: #818CF8;
+  --color-status-not-started: #64748B;
+}
+
+/* ============================================================================
+   BASE STYLES
+   ============================================================================ */
+
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* ============================================================================
+   SCROLLBAR — hidden globally, scrolling still works
+   ============================================================================ */
+
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Opt-in: bring back a visible, draggable scrollbar for a specific scroll area.
+   Class specificity (0,1,0 / 0,1,1) overrides the global `*` hide above.
+   Used by compact scroll regions like the multi-select chip box. */
+.scrollbar-visible {
+  scrollbar-width: thin;                                  /* Firefox */
+  scrollbar-color: var(--color-border, #cbd5e1) transparent;
+}
+.scrollbar-visible::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-visible::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-visible::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;                               /* slate-300 */
+  border-radius: 9999px;
+  border: 2px solid transparent;                          /* inset look — thumb floats off the edge */
+  background-clip: content-box;
+}
+.scrollbar-visible::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;                               /* slate-400 on hover — clearly grabbable */
+}
+
+/* ============================================================================
+   TYPOGRAPHY SCALE — Plus Jakarta Sans design-system tokens
+   See docs/typography.md for the full spec. Every heading + body style
+   hardcoded here uses the same family (set globally via `font-sans` on body).
+   ============================================================================ */
+
+.text-h1 {
+  font-family: var(--font-jakarta, -apple-system, sans-serif);
+  font-weight: 700;  /* Bold */
+  font-size: 28px;
+  line-height: 42px;
+  letter-spacing: 0;
+}
+
+.text-h2 {
+  font-family: var(--font-jakarta, -apple-system, sans-serif);
+  font-weight: 700;  /* Bold */
+  font-size: 24px;
+  line-height: 36px;
+  letter-spacing: 0;
+}
+
+.text-h3 {
+  font-family: var(--font-jakarta, -apple-system, sans-serif);
+  font-weight: 500;  /* Medium */
+  font-size: 20px;
+  line-height: 30px;
+  letter-spacing: 0;
+}
+
+.text-b1 {
+  font-family: var(--font-jakarta, -apple-system, sans-serif);
+  font-weight: 400;  /* Regular */
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0;
+}
+
+.text-b2 {
+  font-family: var(--font-jakarta, -apple-system, sans-serif);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 21px;
+  letter-spacing: 0;
+}
+
+.text-b3 {
+  font-family: var(--font-jakarta, -apple-system, sans-serif);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0;
+}
+
+/* Body default: b2 (14px) — matches most UI text in our apps. */
+body {
+  font-family: var(--font-jakarta, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  font-size: 14px;
+  line-height: 21px;
+}

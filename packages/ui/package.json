@@ -1,0 +1,49 @@
+{
+  "name": "@quikit/ui",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./button": "./components/button.tsx",
+    "./input": "./components/input.tsx",
+    "./card": "./components/card.tsx",
+    "./badge": "./components/badge.tsx",
+    "./avatar": "./components/avatar.tsx",
+    "./modal": "./components/modal.tsx",
+    "./utils": "./lib/utils.ts",
+    "./global-signout": "./lib/global-signout.ts",
+    "./auth-theme-css": "./lib/auth-theme-css.ts",
+    "./styles": "./styles/globals.css",
+    "./theme-applier": "./components/theme-applier.tsx",
+    "./app-access-denied-popup": "./components/app-access-denied-popup.tsx",
+    "./tailwind-config": "./tailwind.config.ts"
+  },
+  "dependencies": {
+    "@tiptap/extension-color": "^2.27.2",
+    "@tiptap/extension-link": "^2.27.2",
+    "@tiptap/extension-text-style": "^2.27.2",
+    "@tiptap/extension-underline": "^2.27.2",
+    "@tiptap/react": "^2.27.2",
+    "@tiptap/starter-kit": "^2.27.2",
+    "@types/canvas-confetti": "^1.9.0",
+    "canvas-confetti": "^1.9.4",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "date-fns": "^2.30.0",
+    "framer-motion": "^10.18.0",
+    "lucide-react": "^0.294.0",
+    "tailwind-merge": "^2.2.1",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "devDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  }
+}

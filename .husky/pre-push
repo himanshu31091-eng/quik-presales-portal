@@ -1,0 +1,32 @@
+#!/usr/bin/env sh
+#
+# Pre-push hook: run the prod-safety gate before any push to main / uat.
+# CI runs the same check, so this is purely to give you fast local feedback.
+#
+# To activate:
+#   npx husky init   (or once: git config core.hooksPath .husky)
+#
+# To bypass in an emergency (not recommended):
+#   git push --no-verify
+#
+# See docs/engineering/prod-safety-rules.md.
+
+remote="$1"
+url="$2"
+
+# Only enforce on pushes whose target branch is main or uat. Dev can be messy.
+while read local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/main|refs/heads/uat)
+      echo "🔒 Running prod-safety gate before push to $remote_ref..."
+      if ! node "$(git rev-parse --show-toplevel)/scripts/check-prod-urls.mjs"; then
+        echo ""
+        echo "❌ Push blocked. Fix the violations above, or bypass with"
+        echo "   --no-verify if you really know what you're doing."
+        exit 1
+      fi
+      ;;
+  esac
+done
+
+exit 0

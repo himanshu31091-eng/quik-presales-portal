@@ -1,0 +1,50 @@
+node_modules
+.next
+.turbo
+dist
+.env
+.env*.local
+*.env.*.bak
+*.tsbuildinfo
+
+# Test output
+coverage
+.vitest-cache
+playwright-report
+test-results
+.playwright-cache
+.DS_Store
+
+# ── Vercel (CLI link, build output, deploy artifacts) ───────────────────────
+# Local project link + build output. The bare `.vercel` pattern matches the
+# dir at any depth, so the repo-root AND every apps/<app>/.vercel are ignored.
+.vercel
+.vercel/
+**/.vercel/
+.vercel/output
+# Legacy Vercel CLI dir
+.now
+.now/
+# Deploy logs produced by scripts/_deploy-api.mjs & friends (artifacts, not source).
+deploy-*.log
+# NOTE: vercel.json and .vercelignore are intentionally NOT ignored — they are
+# committed deploy configuration (build commands, crons, upload excludes).
+
+apps/quikscale.zip
+apps/quikinfra/uploads/*
+packages/database/.env.tmp
+
+# ────────────────────────────────────────────────────────────────────────────
+# Internal working artifacts — audits, handoffs, mind maps, brainstorm
+# captures, scratch notes. Local-only; never committed.
+#
+# Three tiers of non-code files:
+#   /docs/         → Category A: shippable, versioned, part of platform contract
+#   /_internal/    → Category B: gitignored (this), your scratch space
+#   ~/Desktop/...  → Category C: external shareables (kits, zips, exports)
+# ────────────────────────────────────────────────────────────────────────────
+/_internal/
+graphify-out/
+
+# Markdown files — local-only docs, analyses, scratch notes; never committed.
+*.md

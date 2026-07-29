@@ -1,0 +1,35 @@
+{
+  "name": "@quikit/realtime-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "QuikChat realtime gateway — Socket.IO + Redis adapter, consumes the quikchat:fanout publish seam. Ported + hardened for the QuikIT monorepo (Phase 0).",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
+    "build": "node build.mjs",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@quikit/database": "*",
+    "@socket.io/redis-adapter": "8.3.0",
+    "ioredis": "5.4.1",
+    "jsonwebtoken": "9.0.2",
+    "pino": "9.3.2",
+    "prom-client": "15.1.3",
+    "socket.io": "4.7.5"
+  },
+  "devDependencies": {
+    "@types/ioredis-mock": "^8.2.7",
+    "@types/jsonwebtoken": "9.0.6",
+    "@types/node": "^20.17.10",
+    "esbuild": "^0.28.1",
+    "ioredis-mock": "8.9.0",
+    "socket.io-client": "4.7.5",
+    "tsx": "^4.21.0",
+    "typescript": "^5.3.3",
+    "vitest": "3.2.4"
+  }
+}

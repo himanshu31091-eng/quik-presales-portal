@@ -1,0 +1,41 @@
+DEV PORT MAPPING VERIFICATION
+
+Seed file comment (packages/database/prisma/seed-oauth.ts:56-60):
+  auth → 3000   quikit → 3001   admin → 3002   quikscale → 3003
+  quiktrack → 3004   quikinfra → 3005   quiksocial → 3006
+  quikvc → 3007 (moved off 3006 to make room for quiksocial)
+
+Actual package.json dev ports:
+  quikit:      3000 (seed says auth=3000) ❌
+  auth:        3001 (seed says quikit=3001) ❌
+  admin:       3002 (matches seed) ✓
+  quikscale:   3003 (matches seed) ✓
+  quiktrack:   3004 (matches seed) ✓
+  quikvc:      3005 (seed says quikinfra=3005) ❌
+  quikinfra:   3006 (seed says quiksocial=3006) ❌
+  quiksocial:  3007 (seed says quikvc=3007) ❌
+  quikcrm:     3008 (not in seed comment) ✓
+  quikhrms:    3009 (not in seed comment) ✓
+
+Launcher devLocalhostFallbacks (apps/quikit/app/api/apps/launcher/route.ts:186-196):
+  quikit: 3000 ✓
+  auth: 3001 ✓
+  admin: 3002 ✓
+  quikscale: 3003 ✓
+  quiktrack: 3004 ✓
+  quikinfra: 3006 ✓
+  quikvc: 3005 ✓
+  quikcrm: 3008 ✓
+  quikhrms: 3009 ✓
+
+Admin switcher devLocalhostFallbacks (apps/admin/app/api/apps/switcher/route.ts:65-76):
+  quikit: 3000 ✓
+  auth: 3001 ✓
+  admin: 3002 ✓
+  quikscale: 3003 ✓
+  quiktrack: 3004 ✓
+  quikvc: 3005 ✓
+  quikinfra: 3006 ✓
+  quiksocial: 3007 ✓
+  quikcrm: 3008 ✓
+  quikhrms: 3009 ✓

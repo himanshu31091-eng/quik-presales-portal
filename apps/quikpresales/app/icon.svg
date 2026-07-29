@@ -1,0 +1,17 @@
+<svg width="396" height="396" viewBox="0 0 396 396" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="396" height="396" rx="64.8" fill="#0B1020"/>
+  <defs>
+    <linearGradient id="psg" x1="96" y1="96" x2="300" y2="300" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <!-- Proposal sheet -->
+  <rect x="104" y="86" width="152" height="196" rx="18" fill="url(#psg)"/>
+  <rect x="132" y="126" width="96" height="14" rx="7" fill="#0B1020" fill-opacity="0.55"/>
+  <rect x="132" y="160" width="72" height="14" rx="7" fill="#0B1020" fill-opacity="0.4"/>
+  <rect x="132" y="194" width="88" height="14" rx="7" fill="#0B1020" fill-opacity="0.4"/>
+  <!-- Approval tick -->
+  <circle cx="268" cy="268" r="58" fill="#22D3EE"/>
+  <path d="M243 268l17 17 34-34" stroke="#0B1020" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

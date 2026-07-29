@@ -1,0 +1,53 @@
+{
+  "name": "@quikit/auth",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./types": "./types.ts",
+    "./middleware": "./middleware.ts",
+    "./session-guard": "./session-guard.tsx",
+    "./require-admin": "./require-admin.ts",
+    "./require-super-admin": "./require-super-admin.ts",
+    "./get-tenant-id": "./get-tenant-id.ts",
+    "./feature-gate": "./feature-gate.ts",
+    "./cache": "./cache.ts",
+    "./jwt": "./jwt.ts",
+    "./with-auth": "./with-auth.ts",
+    "./verify-token-remote": "./verify-token-remote.ts",
+    "./session-store": "./session-store.ts",
+    "./public-url": "./public-url.ts",
+    "./session-cookies": "./session-cookies.ts",
+    "./oauth-prefill-store": "./oauth-prefill-store.ts",
+    "./assign-app-roles": "./assign-app-roles.ts",
+    "./accept-invitation": "./accept-invitation.ts",
+    "./invite-redirect": "./invite-redirect.ts",
+    "./app-access": "./app-access.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@quikit/database": "*",
+    "@quikit/redis": "*",
+    "@quikit/shared": "*",
+    "bcryptjs": "^2.4.3",
+    "next-auth": "^4.24.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "next": "14.0.4",
+    "react": "^18.2.0",
+    "typescript": "^5.3.3",
+    "vitest": "^4.1.4",
+    "vitest-mock-extended": "^4.0.0"
+  },
+  "peerDependencies": {
+    "next": ">=14.0.0",
+    "react": ">=18.0.0"
+  }
+}

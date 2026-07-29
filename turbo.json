@@ -1,0 +1,80 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env.local"],
+  "globalPassThroughEnv": ["ComSpec", "SystemRoot"],
+  "concurrency": "20",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "DATABASE_URL",
+        "DATABASE_URL_DIRECT",
+        "NEXTAUTH_SECRET",
+        "NEXTAUTH_URL",
+        "NODE_ENV",
+        "JWT_SIGNING_KEY",
+        "JWT_SIGNING_KEY_PUBLIC",
+        "QUIKIT_URL",
+        "QUIKIT_ISSUER_URL",
+        "QUIKIT_CLIENT_ID",
+        "QUIKIT_CLIENT_SECRET",
+        "QUIKSCALE_URL",
+        "QUIKVC_URL",
+        "QUIKINFRA_URL",
+        "QUIKFINANCE_URL",
+        "QUIKFINANCE_OAUTH_CLIENT_SECRET",
+        "QUIKLMS_URL",
+        "QUIKPRESALES_URL",
+        "QUIKLMS_OAUTH_CLIENT_SECRET",
+        "QUIKASSET_URL",
+        "QUIKASSET_OAUTH_CLIENT_SECRET",
+        "ADMIN_URL",
+        "NEXT_PUBLIC_AUTH_URL",
+        "NEXT_PUBLIC_LAUNCHER_URL",
+        "NEXT_PUBLIC_ADMIN_URL",
+        "INTERNAL_SECRET",
+        "APP_URL",
+        "RESEND_API_KEY",
+        "RESEND_FROM",
+        "ANTHROPIC_API_KEY",
+        "CRON_SECRET",
+        "INBOUND_EMAIL_WEBHOOK_SECRET",
+        "NOTIFICATIONS_EMAIL_ENABLED",
+        "REDIS_URL",
+        "SENTRY_DSN",
+        "NEXT_PUBLIC_SENTRY_DSN",
+        "QUIKVC_DEV_BYPASS",
+        "QUIKVC_DEV_ROLE"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "app/**",
+        "lib/**",
+        "components/**",
+        "pages/**",
+        "src/**",
+        "types/**",
+        "__tests__/**",
+        "vitest.config.ts",
+        "tsconfig.json",
+        "package.json",
+        "index.ts"
+      ],
+      "outputs": [],
+      "env": ["NODE_ENV"]
+    }
+  }
+}

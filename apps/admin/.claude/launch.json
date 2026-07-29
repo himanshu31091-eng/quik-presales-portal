@@ -1,0 +1,28 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "QuikScale (Next.js)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3004,
+      "cwd": "./quikscale-app",
+      "autoPort": false
+    },
+    {
+      "name": "QuikAdmin (Next.js)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3005,
+      "cwd": "C:\\Users\\user\\OneDrive - MoreYeahs IT Technologies Pvt Ltd\\Documents\\QuikAdmin",
+      "autoPort": false
+    },
+    {
+      "name": "Prisma Studio",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["prisma", "studio"],
+      "port": 5555,
+      "autoPort": true
+    }
+  ]
+}

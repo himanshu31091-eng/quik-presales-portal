@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  },
+  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"main\" ]; then exit 1; else exit 0; fi",
+  "crons": [
+    {
+      "path": "/api/super/cron/cleanup-api-calls",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/super/cron/generate-invoices",
+      "schedule": "0 1 1 * *"
+    }
+  ]
+}

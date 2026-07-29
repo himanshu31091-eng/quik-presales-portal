@@ -1,0 +1,270 @@
+/*
+ * Landing-page styles, scoped under `.ps-landing`.
+ *
+ * Plain CSS rather than Tailwind for the same reason quiksupport and quikinfra
+ * do it: the marketing page is a standalone brochure with its own type scale
+ * and dark palette, and it must not inherit the app chrome's accent theming
+ * (there is no org context on a public page, so `--accent-*` is unset here).
+ */
+
+.ps-landing {
+  --ps-bg: #0b1020;
+  --ps-surface: #121a33;
+  --ps-line: rgba(255, 255, 255, 0.1);
+  --ps-text: #eef2ff;
+  --ps-muted: #9aa6c7;
+  --ps-brand: #6366f1;
+  --ps-brand-2: #22d3ee;
+
+  min-height: 100vh;
+  background:
+    radial-gradient(1100px 520px at 15% -10%, rgba(99, 102, 241, 0.22), transparent 60%),
+    radial-gradient(900px 480px at 90% 0%, rgba(34, 211, 238, 0.14), transparent 55%),
+    var(--ps-bg);
+  color: var(--ps-text);
+  font-feature-settings: "cv02", "cv03", "cv04";
+}
+
+.ps-landing a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ── Nav ─────────────────────────────────────────────────────────────────── */
+
+.ps-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1.25rem 1.5rem;
+}
+
+.ps-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.ps-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--ps-brand), var(--ps-brand-2));
+  color: #06101f;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.ps-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.05rem;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.ps-btn:hover {
+  transform: translateY(-1px);
+}
+
+.ps-btn-primary {
+  background: linear-gradient(135deg, var(--ps-brand), #7c83ff);
+  color: #fff;
+}
+
+.ps-btn-ghost {
+  border-color: var(--ps-line);
+  color: var(--ps-text);
+}
+
+.ps-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ps-btn-lg {
+  padding: 0.8rem 1.4rem;
+  font-size: 0.98rem;
+}
+
+/* ── Hero ────────────────────────────────────────────────────────────────── */
+
+.ps-hero {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 4.5rem 1.5rem 3rem;
+  text-align: center;
+}
+
+.ps-eyebrow {
+  display: inline-block;
+  margin-bottom: 1.1rem;
+  padding: 0.32rem 0.75rem;
+  border: 1px solid var(--ps-line);
+  border-radius: 999px;
+  color: var(--ps-muted);
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ps-hero-title {
+  margin: 0 0 1rem;
+  font-size: clamp(2.1rem, 5.2vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.ps-hero-title em {
+  font-style: normal;
+  background: linear-gradient(120deg, var(--ps-brand-2), #a5b4fc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.ps-hero-sub {
+  max-width: 620px;
+  margin: 0 auto 2rem;
+  color: var(--ps-muted);
+  font-size: 1.02rem;
+  line-height: 1.65;
+}
+
+.ps-hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.7rem;
+}
+
+/* ── Sections ────────────────────────────────────────────────────────────── */
+
+.ps-section {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.ps-section-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.ps-section-sub {
+  margin: 0 0 2rem;
+  color: var(--ps-muted);
+  font-size: 0.95rem;
+}
+
+/* ── Feature grid ────────────────────────────────────────────────────────── */
+
+.ps-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(258px, 1fr));
+}
+
+.ps-card {
+  padding: 1.4rem;
+  border: 1px solid var(--ps-line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+
+.ps-card:hover {
+  border-color: rgba(99, 102, 241, 0.5);
+  transform: translateY(-2px);
+}
+
+.ps-card-no {
+  color: var(--ps-brand-2);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.ps-card-title {
+  margin: 0.55rem 0 0.5rem;
+  font-size: 1.06rem;
+  font-weight: 700;
+}
+
+.ps-card-body {
+  margin: 0;
+  color: var(--ps-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* ── Flow strip ──────────────────────────────────────────────────────────── */
+
+.ps-flow {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  counter-reset: ps-step;
+}
+
+.ps-flow-step {
+  position: relative;
+  padding: 1rem 1rem 1rem 2.6rem;
+  border: 1px solid var(--ps-line);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ps-muted);
+  font-size: 0.87rem;
+  line-height: 1.45;
+  counter-increment: ps-step;
+}
+
+.ps-flow-step::before {
+  content: counter(ps-step);
+  position: absolute;
+  top: 1rem;
+  left: 0.95rem;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.22);
+  color: #c7d2fe;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+
+.ps-footer {
+  max-width: 1120px;
+  margin: 2rem auto 0;
+  padding: 1.75rem 1.5rem 3rem;
+  border-top: 1px solid var(--ps-line);
+  color: var(--ps-muted);
+  font-size: 0.83rem;
+}
+
+@media (max-width: 640px) {
+  .ps-hero {
+    padding-top: 3rem;
+  }
+}

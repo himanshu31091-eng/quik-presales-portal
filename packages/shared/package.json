@@ -1,0 +1,37 @@
+{
+  "name": "@quikit/shared",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./types": "./types/index.ts",
+    "./constants": "./lib/constants.ts",
+    "./email": "./lib/email.ts",
+    "./pagination": "./lib/pagination.ts",
+    "./rateLimit": "./lib/rateLimit.ts",
+    "./env": "./lib/env.ts",
+    "./moduleRegistry": "./lib/moduleRegistry.ts",
+    "./apiLogging": "./lib/apiLogging.ts",
+    "./redisCache": "./lib/redisCache.ts",
+    "./dateFormat": "./lib/dateFormat.ts",
+    "./sso-domain-server": "./lib/sso-domain-server.ts",
+    "./login-url": "./lib/login-url.ts",
+    "./temp-password": "./lib/temp-password.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@quikit/redis": "*",
+    "resend": "^2.1.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "vitest": "^4.1.4"
+  }
+}

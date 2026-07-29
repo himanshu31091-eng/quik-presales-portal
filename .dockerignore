@@ -1,0 +1,54 @@
+# Build artifacts
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/build
+
+# Local secrets + env files (never bake into image)
+**/.env
+**/.env.local
+**/.env.*.local
+!**/.env.example
+!**/.env.local.example
+
+# Editor / OS
+.DS_Store
+.vscode
+.idea
+
+# Git
+.git
+.gitignore
+
+# Test / coverage
+**/coverage
+**/__tests__
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+playwright-report
+test-results
+
+# Backups + scratch
+backup
+backups
+**/backup
+tasks
+private.pem
+public.pem
+
+# CI noise
+.github
+.husky
+graphify-out
+
+# Docs (large, not needed at runtime)
+apps/quikscale/docs/admin-guide.md
+apps/quikscale/docs/rolesPermissionsGuide.md
+apps/quikscale/docs/MODULES.md
+apps/quikscale/docs/API_CONTRACT.md
+
+# Vercel-specific
+.vercel
+**/.vercel

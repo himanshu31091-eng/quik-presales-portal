@@ -1,0 +1,9 @@
+# Shell scripts must use LF endings — they run inside Linux (Alpine) containers.
+# A CRLF checkout on Windows would make `sh` fail with `'\r': command not found`.
+*.sh text eol=lf
+
+# Dockerfiles must stay LF too: apps/quikinfra/Dockerfile inlines its container
+# entrypoint via a heredoc (COPY <<'EOSH' … EOSH). On a CRLF checkout those
+# heredoc lines would bake `#!/bin/sh\r` into the image and break startup.
+Dockerfile text eol=lf
+*.Dockerfile text eol=lf

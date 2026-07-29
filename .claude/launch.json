@@ -1,0 +1,68 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "auth",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH && exec npx turbo dev --filter=auth"],
+      "port": 3000,
+      "autoPort": false
+    },
+    {
+      "name": "quikit",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH && exec npx turbo dev --filter=quikit"],
+      "port": 3001,
+      "autoPort": false
+    },
+    {
+      "name": "admin",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH && exec npx turbo dev --filter=admin"],
+      "port": 3002,
+      "autoPort": false
+    },
+    {
+      "name": "quikscale",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH && exec npx turbo dev --filter=quikscale"],
+      "port": 3003,
+      "autoPort": false
+    },
+    {
+      "name": "quiktrack",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH && exec npx turbo dev --filter=quiktrack"],
+      "port": 3004,
+      "autoPort": false
+    },
+    {
+      "name": "quikinfra",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH && exec npx turbo dev --filter=quikinfra"],
+      "port": 3005,
+      "autoPort": false
+    },
+    {
+      "name": "quiksocial",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH && exec npx turbo dev --filter=quiksocial"],
+      "port": 3006,
+      "autoPort": false
+    },
+    {
+      "name": "quikvc",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH && exec npx turbo dev --filter=quikvc"],
+      "port": 3007,
+      "autoPort": false
+    },
+    {
+      "name": "all",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH && exec npm run dev"],
+      "port": 3000,
+      "autoPort": false
+    }
+  ]
+}

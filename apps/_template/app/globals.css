@@ -1,0 +1,5 @@
+@import "@quikit/ui/styles";
+
+/* App-specific styles AFTER the shared import. Keep this file small —
+   prefer Tailwind utility classes in components. Anything reusable belongs
+   in @quikit/ui, not here. */
