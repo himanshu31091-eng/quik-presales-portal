@@ -44,6 +44,45 @@ const ringingClient = pubClient.duplicate();
 
 const metrics = createMetrics();
 
+/** Minimum gap between logged connection errors, per client. */
+const ERROR_LOG_INTERVAL_MS = 30_000;
+
+/**
+ * Attach an `error` listener to a Redis client, throttled.
+ *
+ * Two reasons this exists:
+ *
+ * 1. `duplicate()` does NOT copy listeners, so every duplicated client needs
+ *    its own handler. Without one, ioredis prints "missing 'error' handler on
+ *    this Redis client" and dumps the unhandled error on each reconnect — and
+ *    an unhandled `error` on an EventEmitter can take the process down.
+ * 2. `maxRetriesPerRequest: null` means a client retries forever. On a dev box
+ *    with no Redis running that is five clients reconnecting indefinitely; left
+ *    unthrottled it produces hundreds of identical lines a minute and buries
+ *    every other app's output in the shared `turbo dev` console.
+ *
+ * One line per client per 30s is enough to know Redis is down; `/health` and
+ * the `redisUp` gauge remain the authoritative signal.
+ */
+function attachErrorLogging(client: Redis, name: string): void {
+  let lastLoggedAt = 0;
+  let suppressed = 0;
+
+  client.on("error", (e: Error) => {
+    const now = Date.now();
+    if (now - lastLoggedAt < ERROR_LOG_INTERVAL_MS) {
+      suppressed += 1;
+      return;
+    }
+    logger.error(
+      { error: e.message, client: name, ...(suppressed > 0 ? { suppressed } : {}) },
+      "redis error",
+    );
+    lastLoggedAt = now;
+    suppressed = 0;
+  });
+}
+
 let redisReady = false;
 pubClient.on("ready", () => {
   redisReady = true;
@@ -53,7 +92,6 @@ pubClient.on("end", () => {
   redisReady = false;
   metrics.redisUp.set(0);
 });
-pubClient.on("error", (e) => logger.error({ error: e.message }, "redis error"));
 
 // §2.8 — fold the fan-out subscriber's connection health into /health (the
 // standalone gateway only reported pub readiness).
@@ -66,7 +104,14 @@ fanoutSub.on("end", () => {
   fanoutReady = false;
   metrics.fanoutSubUp.set(0);
 });
-fanoutSub.on("error", (e) => logger.error({ error: e.message }, "fanout subscriber error"));
+
+// Every client, not just the two that report into /health. The three created by
+// duplicate() had no error handler at all before this.
+attachErrorLogging(pubClient, "pub");
+attachErrorLogging(subClient, "sub");
+attachErrorLogging(fanoutSub, "fanout");
+attachErrorLogging(presenceClient, "presence");
+attachErrorLogging(ringingClient, "ringing");
 
 const gateway = createGateway({
   tokenSecret: TOKEN_SECRET,
