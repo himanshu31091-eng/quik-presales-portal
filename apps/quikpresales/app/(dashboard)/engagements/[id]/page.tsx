@@ -38,6 +38,8 @@ interface EngagementDetail {
   techStack: string[];
   expectedClose: string | null;
   aiDealHealth: string | null;
+  riskScore: number | null;
+  dealHealthUpdatedAt: string | null;
   crmOpportunityId: string | null;
   _count: {
     documents: number;
@@ -82,7 +84,12 @@ export default function EngagementDetailPage() {
               status={closed ? data.closedStatus : data.stage}
               label={STAGE_LABEL[data.stage as Stage] ?? data.stage}
             />
-            {!closed && can("engagements", "update") ? <StageAdvancer engagementId={id} currentStage={data.stage} /> : null}
+            {!closed && can("engagements", "update") ? (
+              <>
+                <DealHealthAssessor engagementId={id} assessed={!!data.aiDealHealth} />
+                <StageAdvancer engagementId={id} currentStage={data.stage} />
+              </>
+            ) : null}
           </div>
         }
       />
@@ -129,7 +136,23 @@ function Overview({ engagement }: { engagement: EngagementDetail }) {
     ],
     [
       "AI deal health",
-      engagement.aiDealHealth ? <StatusPill status={engagement.aiDealHealth} /> : "Not scored",
+      engagement.aiDealHealth ? (
+        <span className="flex flex-wrap items-center gap-2">
+          <StatusPill status={engagement.aiDealHealth} />
+          {engagement.riskScore !== null ? (
+            <span className="text-xs text-[var(--color-text-secondary)]">
+              risk {engagement.riskScore}/100
+            </span>
+          ) : null}
+          {engagement.dealHealthUpdatedAt ? (
+            <span className="text-xs text-[var(--color-text-secondary)]">
+              assessed {formatDate(engagement.dealHealthUpdatedAt)}
+            </span>
+          ) : null}
+        </span>
+      ) : (
+        "Not scored"
+      ),
     ],
   ];
 
@@ -144,6 +167,92 @@ function Overview({ engagement }: { engagement: EngagementDetail }) {
         ))}
       </dl>
     </Panel>
+  );
+}
+
+interface DealHealthResult {
+  health: string;
+  riskScore: number;
+  rationale: string;
+  risks: string[];
+  nextActions: string[];
+  isStub: boolean;
+}
+
+/**
+ * Triggers `POST /api/engagements/[id]/deal-health`.
+ *
+ * The persisted verdict lands on the Overview tab via query invalidation; the
+ * narrative (rationale, risks, next actions) has no column on the engagement, so
+ * it is only shown here from the mutation's own response and on the timeline.
+ * Rendered only for open engagements with `engagements:update`, matching the
+ * server's guards — the endpoint 409s on a closed deal.
+ */
+function DealHealthAssessor({ engagementId, assessed }: { engagementId: string; assessed: boolean }) {
+  const assess = useApiMutation<DealHealthResult, void>(
+    () => api.post(`/api/engagements/${engagementId}/deal-health`, {}),
+    [["engagement", engagementId], ["engagements"], ["dashboard"]],
+  );
+
+  const result = assess.data;
+
+  return (
+    <div className="relative">
+      <Button
+        size="sm"
+        variant="secondary"
+        disabled={assess.isPending}
+        onClick={() => assess.mutate()}
+      >
+        {assess.isPending ? "Assessing…" : assessed ? "Re-assess health" : "Assess deal health"}
+      </Button>
+
+      {assess.error ? (
+        <span className="ml-2 text-xs text-red-600">{(assess.error as Error).message}</span>
+      ) : null}
+
+      {result ? (
+        <div className="absolute right-0 z-10 mt-2 w-80 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-primary)] p-3 shadow-lg">
+          <div className="mb-2 flex items-center gap-2">
+            <StatusPill status={result.health} />
+            <span className="text-xs text-[var(--color-text-secondary)]">
+              risk {result.riskScore}/100
+            </span>
+          </div>
+
+          {result.isStub ? (
+            <p className="text-xs text-amber-700">
+              AI is not configured in this environment, so this is a placeholder rather than a real
+              assessment.
+            </p>
+          ) : (
+            <p className="text-xs text-[var(--color-text-secondary)]">{result.rationale}</p>
+          )}
+
+          {result.risks.length > 0 ? (
+            <>
+              <p className="mt-2 text-xs font-medium">Risks</p>
+              <ul className="ml-4 list-disc text-xs text-[var(--color-text-secondary)]">
+                {result.risks.map((risk) => (
+                  <li key={risk}>{risk}</li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+
+          {result.nextActions.length > 0 ? (
+            <>
+              <p className="mt-2 text-xs font-medium">Suggested next actions</p>
+              <ul className="ml-4 list-disc text-xs text-[var(--color-text-secondary)]">
+                {result.nextActions.map((action) => (
+                  <li key={action}>{action}</li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
