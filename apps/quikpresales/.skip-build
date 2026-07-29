@@ -1,8 +1,0 @@
-This file marks _template as a non-buildable scaffold. Turbo + Vercel ignore
-this app because its package.json has no `dev` filter listed at the root and
-its imports are illustrative only.
-
-To convert this template into a real app:
-1. Copy the directory: cp -r apps/_template apps/<your-app>
-2. Delete this file: rm apps/<your-app>/.skip-build
-3. Rename per apps/<your-app>/README.md.

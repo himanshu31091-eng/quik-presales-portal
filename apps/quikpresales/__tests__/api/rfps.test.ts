@@ -57,12 +57,14 @@ describe("POST /api/rfps", () => {
 });
 
 describe("POST /api/rfps/[id]/extract", () => {
-  it("409s when extraction is already running", async () => {
+  it("409s when a live extraction is already running", async () => {
     setSession({ id: USER, orgId: ORG_A });
     mockDb.psRfp.findFirst.mockResolvedValue({
       id: "rfp-1",
       title: "RFP",
       status: "extracting",
+      // Claimed a moment ago — the job is genuinely in flight.
+      updatedAt: new Date(),
       sourceDocId: "doc-1",
       engagementId: "eng-1",
       engagement: { title: "Acme" },
@@ -74,6 +76,70 @@ describe("POST /api/rfps/[id]/extract", () => {
 
     expect(res.status).toBe(409);
     // Must not claim the job a second time.
+    expect(mockDb.psRfp.update).not.toHaveBeenCalled();
+  });
+
+  it("reclaims an `extracting` claim left behind by a killed invocation", async () => {
+    // Regression: the platform kills a function at its duration limit without
+    // throwing, so the route's catch never unwinds the claim. The 409 guard then
+    // blocked every retry and the RFP was stuck in `extracting` permanently.
+    setSession({ id: USER, orgId: ORG_A });
+    mockDb.psRfp.findFirst.mockResolvedValue({
+      id: "rfp-1",
+      title: "RFP",
+      status: "extracting",
+      // Older than maxDuration + margin, so no live run can still own it.
+      updatedAt: new Date(Date.now() - 10 * 60 * 1000),
+      sourceDocId: "doc-1",
+      engagementId: "eng-1",
+      engagement: { title: "Acme" },
+    } as never);
+    mockDb.psDocument.findFirst.mockResolvedValue({
+      blobUrl: "https://blob.example/x.pdf",
+      mimeType: "application/pdf",
+      filename: "x.pdf",
+    } as never);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 500 })),
+    );
+
+    const res = await EXTRACT(req("http://localhost:3015/api/rfps/rfp-1/extract", { method: "POST" }), {
+      params: { id: "rfp-1" },
+    });
+
+    // Got past the guard and into extraction, which then failed on the stubbed
+    // blob fetch. The point is that it ran at all — before the fix this was 409.
+    expect(res.status).not.toBe(409);
+    const updates = mockDb.psRfp.update.mock.calls.map(
+      (c) => c[0].data as Record<string, unknown>,
+    );
+    expect(updates[0]).toMatchObject({ status: "extracting" });
+    // And it still unwinds, so a reclaimed run that fails is itself retryable.
+    expect(updates[updates.length - 1]).toMatchObject({ status: "uploaded" });
+
+    vi.unstubAllGlobals();
+  });
+
+  it("treats a claim with no timestamp as live rather than reclaiming it", async () => {
+    // Fail closed: an unknown claim age must not licence a second concurrent
+    // pass, which would duplicate requirement rows.
+    setSession({ id: USER, orgId: ORG_A });
+    mockDb.psRfp.findFirst.mockResolvedValue({
+      id: "rfp-1",
+      title: "RFP",
+      status: "extracting",
+      updatedAt: null,
+      sourceDocId: "doc-1",
+      engagementId: "eng-1",
+      engagement: { title: "Acme" },
+    } as never);
+
+    const res = await EXTRACT(req("http://localhost:3015/api/rfps/rfp-1/extract", { method: "POST" }), {
+      params: { id: "rfp-1" },
+    });
+
+    expect(res.status).toBe(409);
     expect(mockDb.psRfp.update).not.toHaveBeenCalled();
   });
 

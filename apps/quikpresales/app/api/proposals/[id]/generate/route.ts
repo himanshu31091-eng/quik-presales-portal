@@ -10,6 +10,18 @@ import { generateProposalSection, type SectionContext } from "@/lib/ai/prompts/g
 
 const withProposalAuth = withOrgAuthForModule("proposals");
 
+/**
+ * Function time budget — see the matching note in the RFP extract route.
+ * Sections are drafted sequentially, so the worst case here is
+ * MAX_SECTIONS_PER_RUN × one Opus call. At ~40s per section that is ~240s for a
+ * full batch of 6, which fits 300s with little to spare: raise this before
+ * raising the batch cap, and keep the two in step.
+ *
+ * Unlike extraction there is no claim to unwind — nothing is committed until
+ * the closing transaction, so a timeout loses the work but leaves clean state.
+ */
+export const maxDuration = 300;
+
 const generateSchema = z.object({
   /** Omit to draft every currently-empty section. */
   sectionSlugs: z.array(z.string().min(1)).max(60).optional(),

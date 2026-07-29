@@ -12,6 +12,32 @@ import {
 const withRfpAuth = withOrgAuthForModule("rfp");
 
 /**
+ * Function time budget. A large PDF at Opus effort `high` runs for minutes,
+ * well past Vercel's default (10s Hobby / 15s Pro), so it must be declared —
+ * without this the route 504s on any real RFP.
+ *
+ * 300s is the Vercel Pro ceiling for a standard function. On Hobby the ceiling
+ * is 60s and a higher value fails the build; on Fluid compute it can go to 800.
+ * If extraction still times out, the next move is chunking across cron ticks,
+ * not a bigger number here (PRD §12 option A).
+ */
+export const maxDuration = 300;
+
+/**
+ * How long an `extracting` claim stays authoritative.
+ *
+ * When the platform kills a function at its duration limit it does not throw —
+ * the `catch` below never runs, so a claim can outlive the invocation that made
+ * it and the 409 guard would then block every retry forever. Treating an old
+ * claim as a crashed run makes that self-healing.
+ *
+ * The margin over `maxDuration` matters: reclaim too eagerly and a still-running
+ * extraction gets a second pass racing it, which would double up requirement
+ * rows.
+ */
+const STALE_LOCK_MS = (maxDuration + 60) * 1000;
+
+/**
  * POST /api/rfps/[id]/extract
  *
  * Runs requirement extraction. Long-running (a large RFP at high effort takes
@@ -23,8 +49,9 @@ const withRfpAuth = withOrgAuthForModule("rfp");
  * `status` on the row is the job record: extracting → extracted, or back to
  * uploaded with `extractError` set.
  *
- * Guarded against double-submit: a request while `status === "extracting"`
- * returns 409 rather than starting a second pass that would duplicate rows.
+ * Guarded against double-submit: a request while a *live* extraction is running
+ * returns 409 rather than starting a second pass that would duplicate rows. A
+ * claim older than `STALE_LOCK_MS` is assumed dead and reclaimed.
  */
 export const POST = withRfpAuth<{ id: string }>(async ({ orgId, userId }, _req, { params }) => {
   const denied = await requirePermission(userId, orgId, "rfp", "update");
@@ -36,6 +63,9 @@ export const POST = withRfpAuth<{ id: string }>(async ({ orgId, userId }, _req, 
       id: true,
       title: true,
       status: true,
+      // Stamped by @updatedAt when the claim below is written, so it doubles as
+      // "when did the running job start".
+      updatedAt: true,
       sourceDocId: true,
       engagementId: true,
       engagement: { select: { title: true } },
@@ -43,7 +73,13 @@ export const POST = withRfpAuth<{ id: string }>(async ({ orgId, userId }, _req, 
   });
   if (!rfp) return notFound("RFP");
 
-  if (rfp.status === "extracting") {
+  // A claim with no timestamp is treated as live: better to make the user wait
+  // than to run two extractions against one RFP.
+  const claimedAt = rfp.updatedAt?.getTime();
+  const lockIsStale = claimedAt !== undefined && Date.now() - claimedAt > STALE_LOCK_MS;
+  const reclaimed = rfp.status === "extracting" && lockIsStale;
+
+  if (rfp.status === "extracting" && !reclaimed) {
     return fail(409, "Extraction is already running for this RFP");
   }
   if (!rfp.sourceDocId) {
@@ -115,7 +151,14 @@ export const POST = withRfpAuth<{ id: string }>(async ({ orgId, userId }, _req, 
         userId,
         action: "rfp.extract",
         resource: rfp.id,
-        metadata: { count: result.requirements.length, tokensUsed: result.tokensUsed },
+        // `reclaimed` marks a run that took over a dead claim — the audit trail
+        // is the only place a timed-out invocation leaves a trace, since the
+        // killed function logs nothing itself.
+        metadata: {
+          count: result.requirements.length,
+          tokensUsed: result.tokensUsed,
+          ...(reclaimed ? { reclaimed: true } : {}),
+        },
       });
     });
 
@@ -143,7 +186,7 @@ export const POST = withRfpAuth<{ id: string }>(async ({ orgId, userId }, _req, 
       action: "rfp.extract",
       resource: rfp.id,
       outcome: "error",
-      metadata: { message },
+      metadata: { message, ...(reclaimed ? { reclaimed: true } : {}) },
     });
 
     return fail(502, `Extraction failed: ${message}`);
