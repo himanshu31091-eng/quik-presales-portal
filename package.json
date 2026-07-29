@@ -19,6 +19,8 @@
     "dev:quikit": "turbo dev --filter=quikit",
     "dev:admin": "turbo dev --filter=admin",
     "dev:super-admin": "turbo dev --filter=super-admin",
+    "dev:quikpresales": "turbo dev --filter=quikpresales",
+    "dev:presales-sso": "turbo dev --filter=quikpresales --filter=quikit --filter=auth",
     "db:push": "cd packages/database && npx prisma db push",
     "db:migrate": "cd packages/database && npx prisma migrate dev",
     "db:migrate:deploy": "cd packages/database && npx prisma migrate deploy",
