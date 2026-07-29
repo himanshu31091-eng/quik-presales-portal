@@ -14,17 +14,36 @@ export interface ProposalSection {
   html: string;
 }
 
-/** The default skeleton a new proposal starts from. */
+/**
+ * The default skeleton a new proposal starts from, in document order.
+ *
+ * Ordered to match the section list in the PRD (§8). Slugs are the on-disk key,
+ * so an existing slug is never renamed or reordered out of a stored version —
+ * changing this list only affects proposals created afterwards. `proposed-solution`
+ * keeps its original slug but is now titled "Technical Solution", since the PRD
+ * splits functional from technical and the pair reads wrong otherwise.
+ *
+ * Adding sections here raises the number of AI generation runs needed to fill a
+ * proposal: the generate route caps each run at MAX_SECTIONS_PER_RUN and reports
+ * the remainder as `deferred`.
+ */
 export const DEFAULT_SECTIONS: readonly { slug: string; title: string }[] = [
   { slug: "executive-summary", title: "Executive Summary" },
+  { slug: "company-overview", title: "Company Overview" },
   { slug: "understanding", title: "Understanding of Requirements" },
-  { slug: "proposed-solution", title: "Proposed Solution" },
+  { slug: "scope", title: "Scope of Work" },
+  { slug: "functional-solution", title: "Functional Solution" },
+  { slug: "proposed-solution", title: "Technical Solution" },
   { slug: "architecture", title: "Technical Architecture" },
   { slug: "delivery-approach", title: "Delivery Approach" },
-  { slug: "team", title: "Team & Governance" },
   { slug: "timeline", title: "Timeline & Milestones" },
+  { slug: "team", title: "Team & Governance" },
   { slug: "pricing", title: "Commercials" },
   { slug: "assumptions", title: "Assumptions & Risks" },
+  { slug: "sla", title: "Service Levels" },
+  { slug: "security", title: "Security" },
+  { slug: "compliance", title: "Compliance" },
+  { slug: "case-studies", title: "Case Studies & References" },
   { slug: "why-us", title: "Why MoreYeahs" },
 ];
 

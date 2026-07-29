@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  DEFAULT_SECTIONS,
   normaliseSections,
   parseSections,
   sanitizeSectionHtml,
@@ -81,5 +82,53 @@ describe("sectionToPlainText", () => {
     expect(text).toContain("First");
     expect(text).toContain("A & B");
     expect(text).not.toContain("<");
+  });
+});
+
+describe("DEFAULT_SECTIONS", () => {
+  // The PRD (§8) enumerates the sections a proposal must offer. Scope, Service
+  // Levels, Security, Compliance, Case Studies and Company Overview were all
+  // absent from the skeleton, so a generated proposal simply had no place to put
+  // them. Named individually rather than compared as a set, so a future edit
+  // that drops one fails on that one.
+  const REQUIRED_BY_PRD = [
+    "executive-summary",
+    "company-overview",
+    "understanding",
+    "scope",
+    "functional-solution",
+    "proposed-solution",
+    "architecture",
+    "timeline",
+    "team",
+    "pricing",
+    "assumptions",
+    "sla",
+    "security",
+    "compliance",
+    "case-studies",
+  ];
+
+  it.each(REQUIRED_BY_PRD)("includes the %s section", (slug) => {
+    expect(DEFAULT_SECTIONS.map((s) => s.slug)).toContain(slug);
+  });
+
+  it("has no duplicate slugs", () => {
+    const slugs = DEFAULT_SECTIONS.map((s) => s.slug);
+    expect(new Set(slugs).size).toBe(slugs.length);
+  });
+
+  it("gives every section a non-empty title", () => {
+    for (const section of DEFAULT_SECTIONS) {
+      expect(section.title.trim()).not.toBe("");
+    }
+  });
+
+  it("survives normalisation into a proposal skeleton", () => {
+    // How the create route seeds a new proposal — if the skeleton can't round
+    // trip through normaliseSections, every new proposal is born malformed.
+    const skeleton = normaliseSections(DEFAULT_SECTIONS.map((s) => ({ ...s, html: "" })));
+    expect(skeleton).toHaveLength(DEFAULT_SECTIONS.length);
+    expect(skeleton.map((s) => s.slug)).toEqual(DEFAULT_SECTIONS.map((s) => s.slug));
   });
 });
