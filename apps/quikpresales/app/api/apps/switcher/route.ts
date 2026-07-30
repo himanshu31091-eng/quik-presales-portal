@@ -5,6 +5,20 @@ import { ADMIN_TIER_ROLES, HIDDEN_APP_SLUGS } from "@quikit/shared";
 import { authOptions } from "@/lib/auth";
 
 /**
+ * This handler takes no request argument, so without this marker Next treats it
+ * as statically analyzable and evaluates it during `next build` — which loads
+ * `@quikit/database` and constructs PrismaClient. On a build machine with no
+ * DATABASE_URL that throws
+ * `PrismaClientConstructorValidationError: Invalid value undefined for
+ * datasource "db"` and fails the whole build. It passed locally only because
+ * .env.local supplied the variable.
+ *
+ * The result is per-user and per-org and must never be cached or prerendered
+ * regardless, so forcing dynamic is correct on its own merits.
+ */
+export const dynamic = "force-dynamic";
+
+/**
  * GET /api/apps/switcher
  *
  * Apps the current user can see in the in-app AppSwitcher (the grid dropdown

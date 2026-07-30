@@ -5,6 +5,13 @@ import { getDisabledModules } from "@quikit/auth/feature-gate";
 import { cacheOrCompute } from "@quikit/shared/redisCache";
 
 /**
+ * Takes no request argument, so Next would otherwise evaluate this at build
+ * time — see the note in app/api/apps/switcher/route.ts. The flags are
+ * per-user and per-org, so this must be dynamic anyway.
+ */
+export const dynamic = "force-dynamic";
+
+/**
  * GET /api/feature-flags/me
  *
  * Returns the set of disabled moduleKeys for the caller's org on THIS app.
