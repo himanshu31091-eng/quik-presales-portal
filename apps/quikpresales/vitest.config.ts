@@ -1,9 +1,18 @@
 import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
 import path from "path";
 
 const pkg = (name: string) => path.resolve(__dirname, `../../packages/${name}`);
 
 export default defineConfig({
+  // tsconfig sets `jsx: "preserve"` because Next.js does the transform at build
+  // time. Vitest has no such step, so without a JSX transform every .tsx test
+  // file fails to parse on its first tag — which is why the app had no component
+  // tests despite the directive documented below.
+  //
+  // The plugin rather than `esbuild: { jsx }`: this Vitest runs on rolldown-vite,
+  // which ignores the esbuild option.
+  plugins: [react()],
   test: {
     // Default env is node. DOM tests opt in per-file with the directive
     // `// @vitest-environment jsdom` at the top of the .tsx file.
