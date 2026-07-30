@@ -12,16 +12,25 @@ import {
 const withRfpAuth = withOrgAuthForModule("rfp");
 
 /**
- * Function time budget. A large PDF at Opus effort `high` runs for minutes,
- * well past Vercel's default (10s Hobby / 15s Pro), so it must be declared —
- * without this the route 504s on any real RFP.
+ * Function time budget. A large PDF at Opus effort `high` runs for minutes, well
+ * past Vercel's default, so it must be declared — without this the route 504s on
+ * any real RFP.
  *
- * 300s is the Vercel Pro ceiling for a standard function. On Hobby the ceiling
- * is 60s and a higher value fails the build; on Fluid compute it can go to 800.
- * If extraction still times out, the next move is chunking across cron ticks,
- * not a bigger number here (PRD §12 option A).
+ * 60 is the **Hobby plan ceiling**, and the deploy target is currently a Hobby
+ * account. A higher value fails the build outright, which is why this is not the
+ * 300 the Pro plan would allow.
+ *
+ * ⚠️ 60s is NOT enough for a real extraction. A multi-page RFP at Opus effort
+ * `high` will exceed it and return 504. The stale-claim reclaim below is what
+ * keeps that from wedging the record permanently, so the user can retry — but
+ * retrying does not make the job fit.
+ *
+ * To actually make this work, in order of preference:
+ *   1. Upgrade to Pro and raise this to 300 (800 with Fluid compute).
+ *   2. Chunk extraction across Vercel-cron ticks (PRD §12 option A).
+ *   3. Move to a persistent container (PRD §12 option B).
  */
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 /**
  * How long an `extracting` claim stays authoritative.

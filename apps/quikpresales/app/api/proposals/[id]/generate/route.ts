@@ -12,15 +12,19 @@ const withProposalAuth = withOrgAuthForModule("proposals");
 
 /**
  * Function time budget — see the matching note in the RFP extract route.
- * Sections are drafted sequentially, so the worst case here is
- * MAX_SECTIONS_PER_RUN × one Opus call. At ~40s per section that is ~240s for a
- * full batch of 6, which fits 300s with little to spare: raise this before
- * raising the batch cap, and keep the two in step.
  *
- * Unlike extraction there is no claim to unwind — nothing is committed until
- * the closing transaction, so a timeout loses the work but leaves clean state.
+ * 60 is the Hobby plan ceiling and the deploy target is a Hobby account; a
+ * higher value fails the build. Sections are drafted sequentially, so the worst
+ * case is MAX_SECTIONS_PER_RUN × one Opus call — which is why the batch cap
+ * below drops to 1 here. **Keep the two in step:** raising one without the other
+ * either wastes budget or guarantees a timeout.
+ *
+ * Unlike extraction there is no claim to unwind — nothing is committed until the
+ * closing transaction, so a timeout loses the work but leaves clean state. The
+ * response reports `deferred`, so a caller can drive a full proposal by calling
+ * repeatedly.
  */
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 const generateSchema = z.object({
   /** Omit to draft every currently-empty section. */
@@ -29,8 +33,14 @@ const generateSchema = z.object({
   overwrite: z.boolean().default(false),
 });
 
-/** Cap per request so one call can't run past the function's time budget. */
-const MAX_SECTIONS_PER_RUN = 6;
+/**
+ * Cap per request so one call can't run past the function's time budget.
+ *
+ * 1 on the 60s Hobby ceiling: a single Opus section takes roughly 20-40s, so two
+ * would routinely blow the budget. On Pro (maxDuration 300) this can go back to
+ * 6. The caller uses the `deferred` count in the response to keep going.
+ */
+const MAX_SECTIONS_PER_RUN = 1;
 
 /**
  * POST /api/proposals/[id]/generate
