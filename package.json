@@ -21,6 +21,8 @@
     "dev:super-admin": "turbo dev --filter=super-admin",
     "dev:quikpresales": "turbo dev --filter=quikpresales",
     "dev:presales-sso": "turbo dev --filter=quikpresales --filter=quikit --filter=auth",
+    "db:bootstrap": "prisma db execute --schema=packages/database/prisma/schema.prisma --file scripts/init-db-extensions.sql && prisma db push --schema=packages/database/prisma/schema.prisma --skip-generate --accept-data-loss",
+    "vercel:build:quikpresales": "npm run db:bootstrap && node scripts/provision-quikpresales.mjs \"$NEXTAUTH_URL\" && npm run build --workspace=quikpresales",
     "db:push": "cd packages/database && npx prisma db push",
     "db:migrate": "cd packages/database && npx prisma migrate dev",
     "db:migrate:deploy": "cd packages/database && npx prisma migrate deploy",
