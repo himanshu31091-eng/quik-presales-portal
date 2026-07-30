@@ -101,6 +101,9 @@ export default function EngagementDetailPage() {
           { key: "documents", label: `Documents (${data._count.documents})` },
           { key: "rfps", label: `RFPs (${data._count.rfps})` },
           { key: "proposals", label: `Proposals (${data._count.proposals})` },
+          // No count: demo deliveries live on the timeline, not a relation, so
+          // they aren't in the engagement's _count.
+          { key: "demos", label: "Demos" },
         ]}
         value={tab}
         onChange={setTab}
@@ -112,6 +115,7 @@ export default function EngagementDetailPage() {
         {tab === "documents" ? <Documents engagementId={id} /> : null}
         {tab === "rfps" ? <RelatedRfps engagementId={id} /> : null}
         {tab === "proposals" ? <RelatedProposals engagementId={id} /> : null}
+        {tab === "demos" ? <DemoDeliveries engagementId={id} /> : null}
       </div>
     </div>
   );
@@ -336,6 +340,255 @@ interface DocumentRow {
   blobUrl: string;
   status: string;
   createdAt: string;
+}
+
+interface DemoDelivery {
+  id: string;
+  demoTitle: string | null;
+  technology: string | null;
+  deliveredAt: string;
+  audience: string[];
+  outcome: string;
+  feedbackScore: number | null;
+  notes: string | null;
+}
+
+interface DemoDeliveryResponse {
+  deliveries: DemoDelivery[];
+  summary: { total: number; averageScore: number | null; byOutcome: Record<string, number> };
+}
+
+/**
+ * Per-engagement demo history.
+ *
+ * The Demo Library (/demos) holds reusable assets; this is the record of what
+ * was actually presented to this customer. Logging here is what feeds the
+ * weekly report's demo count and the demo-satisfaction KPI — before this there
+ * was no write path for either.
+ */
+function DemoDeliveries({ engagementId }: { engagementId: string }) {
+  const { can } = useMyPermissions();
+  const { data, isLoading, refetch } = useApiQuery<DemoDeliveryResponse>(
+    ["engagement", engagementId, "demos"],
+    `/api/engagements/${engagementId}/demos`,
+  );
+
+  return (
+    <div className="space-y-4">
+      {can("engagements", "update") ? (
+        <LogDemoForm engagementId={engagementId} onLogged={() => void refetch()} />
+      ) : null}
+
+      {data && data.summary.total > 0 ? (
+        <Panel>
+          <div className="flex flex-wrap gap-6 text-sm">
+            <span>
+              <span className="text-gray-500">Delivered</span>{" "}
+              <span className="font-medium text-gray-900">{data.summary.total}</span>
+            </span>
+            <span>
+              <span className="text-gray-500">Avg. rating</span>{" "}
+              <span className="font-medium text-gray-900">
+                {data.summary.averageScore !== null ? `${data.summary.averageScore} / 5` : "—"}
+              </span>
+            </span>
+            {Object.entries(data.summary.byOutcome).map(([outcome, count]) => (
+              <span key={outcome}>
+                <span className="text-gray-500">{outcome}</span>{" "}
+                <span className="font-medium text-gray-900">{count}</span>
+              </span>
+            ))}
+          </div>
+        </Panel>
+      ) : null}
+
+      {isLoading ? (
+        <Loading />
+      ) : (
+        <TableShell headers={["Demo", "Technology", "Audience", "Outcome", "Rating", "Delivered"]}>
+          {(data?.deliveries.length ?? 0) === 0 ? (
+            <EmptyRow colSpan={6} message="No demos logged for this engagement yet." />
+          ) : (
+            data?.deliveries.map((d) => (
+              <tr key={d.id} className="hover:bg-gray-50">
+                <td className="px-4 py-2.5 text-gray-900">
+                  {d.demoTitle ?? <span className="text-gray-400">Ad-hoc demo</span>}
+                  {d.notes ? <p className="mt-0.5 text-xs text-gray-500">{d.notes}</p> : null}
+                </td>
+                <td className="px-4 py-2.5 text-gray-600">{d.technology ?? "—"}</td>
+                <td className="px-4 py-2.5 text-gray-600">
+                  {d.audience.length > 0 ? d.audience.join(", ") : "—"}
+                </td>
+                <td className="px-4 py-2.5">
+                  <StatusPill status={d.outcome} />
+                </td>
+                <td className="px-4 py-2.5 text-gray-600">
+                  {d.feedbackScore !== null ? `${d.feedbackScore} / 5` : "—"}
+                </td>
+                <td className="px-4 py-2.5 text-xs text-gray-500">{formatDate(d.deliveredAt)}</td>
+              </tr>
+            ))
+          )}
+        </TableShell>
+      )}
+    </div>
+  );
+}
+
+interface DemoOption {
+  id: string;
+  title: string;
+  technology: string;
+}
+
+function LogDemoForm({
+  engagementId,
+  onLogged,
+}: {
+  engagementId: string;
+  onLogged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [demoId, setDemoId] = useState("");
+  const [technology, setTechnology] = useState("");
+  const [audience, setAudience] = useState("");
+  const [outcome, setOutcome] = useState("neutral");
+  const [score, setScore] = useState("");
+  const [notes, setNotes] = useState("");
+
+  // Library assets, so a logged demo can point at the thing that was presented
+  // and accumulate a rating against it.
+  const { data: library } = useApiQuery<Paginated<DemoOption>>(
+    ["demos", "options"],
+    "/api/demos?limit=100",
+  );
+
+  const log = useApiMutation(
+    () =>
+      api.post(`/api/engagements/${engagementId}/demos`, {
+        ...(demoId ? { demoId } : {}),
+        ...(technology ? { technology } : {}),
+        audience: audience
+          .split(",")
+          .map((a) => a.trim())
+          .filter(Boolean),
+        outcome,
+        ...(score ? { feedbackScore: Number(score) } : {}),
+        ...(notes ? { notes } : {}),
+      }),
+    [["engagement", engagementId, "demos"], ["engagement", engagementId], ["demos"], ["dashboard"]],
+  );
+
+  if (!open) {
+    return (
+      <Button size="sm" onClick={() => setOpen(true)}>
+        Log a delivered demo
+      </Button>
+    );
+  }
+
+  return (
+    <Panel>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className="text-sm">
+          <span className="mb-1 block text-gray-500">Demo from library</span>
+          <Select
+            value={demoId}
+            onChange={(e) => setDemoId(e.target.value)}
+            options={[
+              { value: "", label: "Ad-hoc / not in library" },
+              ...(library?.data ?? []).map((d) => ({ value: d.id, label: d.title })),
+            ]}
+          />
+        </label>
+
+        <label className="text-sm">
+          <span className="mb-1 block text-gray-500">Technology</span>
+          <input
+            value={technology}
+            onChange={(e) => setTechnology(e.target.value)}
+            placeholder="e.g. Dynamics365"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
+          />
+        </label>
+
+        <label className="text-sm">
+          <span className="mb-1 block text-gray-500">Audience (comma separated)</span>
+          <input
+            value={audience}
+            onChange={(e) => setAudience(e.target.value)}
+            placeholder="CFO, Finance Manager"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
+          />
+        </label>
+
+        <label className="text-sm">
+          <span className="mb-1 block text-gray-500">Outcome</span>
+          <Select
+            value={outcome}
+            onChange={(e) => setOutcome(e.target.value)}
+            options={[
+              { value: "positive", label: "Positive" },
+              { value: "neutral", label: "Neutral" },
+              { value: "negative", label: "Negative" },
+              { value: "no-decision", label: "No decision" },
+            ]}
+          />
+        </label>
+
+        <label className="text-sm">
+          <span className="mb-1 block text-gray-500">Customer rating (1–5, optional)</span>
+          <Select
+            value={score}
+            onChange={(e) => setScore(e.target.value)}
+            options={[
+              { value: "", label: "Not rated" },
+              ...[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: `${n} / 5` })),
+            ]}
+          />
+        </label>
+
+        <label className="text-sm sm:col-span-2">
+          <span className="mb-1 block text-gray-500">Notes</span>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
+          />
+        </label>
+      </div>
+
+      <div className="mt-3 flex items-center gap-2">
+        <Button
+          size="sm"
+          disabled={log.isPending}
+          onClick={() =>
+            log.mutate(undefined, {
+              onSuccess: () => {
+                setOpen(false);
+                setDemoId("");
+                setTechnology("");
+                setAudience("");
+                setOutcome("neutral");
+                setScore("");
+                setNotes("");
+                onLogged();
+              },
+            })
+          }
+        >
+          {log.isPending ? "Saving…" : "Save"}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+        {log.error ? (
+          <span className="text-xs text-red-600">{(log.error as Error).message}</span>
+        ) : null}
+      </div>
+    </Panel>
+  );
 }
 
 function Documents({ engagementId }: { engagementId: string }) {
