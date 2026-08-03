@@ -37,7 +37,15 @@ const Modal = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-modal-backdrop bg-black bg-opacity-50 dark:bg-opacity-60"
+          className={cn(
+            "fixed inset-0 z-modal-backdrop bg-black bg-opacity-50 dark:bg-opacity-60",
+            // The backdrop both centres the panel and scrolls it. Centring lives
+            // here rather than on the panel because the panel is transform-
+            // animated — see the note below. Scrolling lives here because this
+            // component sets `body { overflow: hidden }`, so a panel taller than
+            // the viewport would otherwise have no way to be reached at all.
+            "flex overflow-y-auto p-4"
+          )}
           onClick={() => onOpenChange(false)}
         >
           <motion.div
@@ -46,8 +54,17 @@ const Modal = ({
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              "fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2",
-              "z-modal w-full max-w-md mx-auto",
+              // `m-auto` inside a flex parent, NOT `top-1/2 left-1/2` with
+              // `-translate-*`. Framer Motion owns the inline `transform` on this
+              // element for the scale animation, and writes `transform: none`
+              // once it settles at scale 1 — which silently destroyed Tailwind's
+              // translate-based centring. The panel's top-left corner ended up at
+              // the viewport centre, pushing a tall modal off the bottom of the
+              // screen with its buttons unreachable.
+              //
+              // `m-auto` also survives overflow correctly, where `items-center`
+              // on the parent would clip the top of an over-tall panel.
+              "m-auto z-modal w-full max-w-md",
               className
             )}
             onClick={(e) => e.stopPropagation()}
