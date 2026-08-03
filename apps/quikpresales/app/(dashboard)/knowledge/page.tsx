@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { Button, Input, Select, Textarea, Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from "@quikit/ui";
 import { api, useApiQuery, useApiMutation, formatDate, type Paginated } from "@/lib/api-client";
-import { PageHeader, Panel, Loading, ErrorNote } from "@/components/ui-kit";
-import { KNOWLEDGE_KINDS, INDUSTRIES } from "@/lib/library/constants";
+import { PageHeader, Panel, Loading, ErrorNote, ComboField } from "@/components/ui-kit";
+import { KNOWLEDGE_KINDS } from "@/lib/library/constants";
 import { useMyPermissions } from "@/lib/hooks/useMyPermissions";
+import { useVocabulary, VOCABULARY_KEY } from "@/lib/hooks/useVocabulary";
 
 interface KnowledgeRow {
   id: string;
@@ -128,10 +129,11 @@ function CreateAssetModal({ onClose }: { onClose: () => void }) {
   const [body, setBody] = useState("");
   const [industry, setIndustry] = useState("");
   const [tags, setTags] = useState("");
+  const { industries } = useVocabulary();
 
   const create = useApiMutation(
     (payload: Record<string, unknown>) => api.post("/api/knowledge", payload),
-    [["knowledge"], ["dashboard"]],
+    [["knowledge"], ["dashboard"], VOCABULARY_KEY],
   );
 
   return (
@@ -160,14 +162,12 @@ function CreateAssetModal({ onClose }: { onClose: () => void }) {
               placeholder="The content AI drafting will draw on."
             />
           </div>
-          <Select
+          <ComboField
             label="Industry"
             value={industry}
-            onChange={(e) => setIndustry(e.target.value)}
-            options={[
-              { value: "", label: "General" },
-              ...INDUSTRIES.map((i) => ({ value: i, label: i })),
-            ]}
+            onChange={setIndustry}
+            options={industries}
+            placeholder="Leave blank for General — or type your own"
           />
           <Input
             label="Tags"

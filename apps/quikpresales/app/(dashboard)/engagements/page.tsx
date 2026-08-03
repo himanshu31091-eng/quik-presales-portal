@@ -18,10 +18,11 @@ import {
   EmptyRow,
   Loading,
   ErrorNote,
+  ComboField,
 } from "@/components/ui-kit";
 import { ACTIVE_STAGES, STAGE_LABEL, type Stage } from "@/lib/pipeline";
-import { INDUSTRIES } from "@/lib/library/constants";
 import { useMyPermissions } from "@/lib/hooks/useMyPermissions";
+import { useVocabulary, VOCABULARY_KEY } from "@/lib/hooks/useVocabulary";
 
 interface EngagementRow {
   id: string;
@@ -133,10 +134,13 @@ function CreateEngagementModal({ onClose }: { onClose: () => void }) {
   const [industry, setIndustry] = useState("");
   const [revenue, setRevenue] = useState("");
   const [crmOpportunityId, setCrmOpportunityId] = useState("");
+  const { industries } = useVocabulary();
 
   const create = useApiMutation(
     (body: Record<string, unknown>) => api.post("/api/engagements", body),
-    [["engagements"], ["dashboard"]],
+    // VOCABULARY_KEY: saving may introduce a term nobody has used before, and it
+    // should be suggested in the next form without a reload.
+    [["engagements"], ["dashboard"], VOCABULARY_KEY],
   );
 
   function submit() {
@@ -166,14 +170,12 @@ function CreateEngagementModal({ onClose }: { onClose: () => void }) {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Acme Corp — D365 migration"
           />
-          <Select
+          <ComboField
             label="Industry"
             value={industry}
-            onChange={(e) => setIndustry(e.target.value)}
-            options={[
-              { value: "", label: "Not set" },
-              ...INDUSTRIES.map((i) => ({ value: i, label: i })),
-            ]}
+            onChange={setIndustry}
+            options={industries}
+            placeholder="e.g. Manufacturing — or type your own"
           />
           <Input
             label="Estimated revenue (₹)"

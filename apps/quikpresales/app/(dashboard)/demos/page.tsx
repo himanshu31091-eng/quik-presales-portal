@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { Button, Input, Select, Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from "@quikit/ui";
 import { api, useApiQuery, useApiMutation, type Paginated } from "@/lib/api-client";
-import { PageHeader, Panel, StatusPill, Loading, ErrorNote } from "@/components/ui-kit";
+import { PageHeader, Panel, StatusPill, Loading, ErrorNote, ComboField } from "@/components/ui-kit";
 import { INDUSTRIES, TECHNOLOGIES } from "@/lib/library/constants";
 import { useMyPermissions } from "@/lib/hooks/useMyPermissions";
+import { useVocabulary, VOCABULARY_KEY } from "@/lib/hooks/useVocabulary";
 
 interface DemoRow {
   id: string;
@@ -25,6 +26,10 @@ export default function DemosPage() {
   const { can } = useMyPermissions();
   const [industry, setIndustry] = useState("");
   const [technology, setTechnology] = useState("");
+  // Filters stay a closed Select — you can only filter by a value that exists —
+  // but the list is the org's live vocabulary, not the compile-time constants,
+  // so a term someone added today is filterable today.
+  const { industries: allIndustries, technologies: allTechnologies } = useVocabulary();
   const [creating, setCreating] = useState(false);
 
   const params = new URLSearchParams({ limit: "100" });
@@ -52,7 +57,7 @@ export default function DemosPage() {
           onChange={(e) => setIndustry(e.target.value)}
           options={[
             { value: "", label: "All industries" },
-            ...INDUSTRIES.map((i) => ({ value: i, label: i })),
+            ...allIndustries.map((i) => ({ value: i, label: i })),
           ]}
           className="max-w-[200px]"
         />
@@ -61,7 +66,7 @@ export default function DemosPage() {
           onChange={(e) => setTechnology(e.target.value)}
           options={[
             { value: "", label: "All technologies" },
-            ...TECHNOLOGIES.map((t) => ({ value: t, label: t })),
+            ...allTechnologies.map((t) => ({ value: t, label: t })),
           ]}
           className="max-w-[200px]"
         />
@@ -149,13 +154,16 @@ function DemoCard({ demo, canRate }: { demo: DemoRow; canRate: boolean }) {
 
 function CreateDemoModal({ onClose }: { onClose: () => void }) {
   const [title, setTitle] = useState("");
+  const { industries, technologies } = useVocabulary();
+  // PsDemo.industry and .technology are non-null, so seed from the first
+  // suggestion rather than leaving them blank and failing validation on submit.
   const [industry, setIndustry] = useState<string>(INDUSTRIES[0]);
   const [technology, setTechnology] = useState<string>(TECHNOLOGIES[0]);
   const [description, setDescription] = useState("");
 
   const create = useApiMutation(
     (body: Record<string, unknown>) => api.post("/api/demos", body),
-    [["demos"], ["dashboard"]],
+    [["demos"], ["dashboard"], VOCABULARY_KEY],
   );
 
   return (
@@ -166,17 +174,17 @@ function CreateDemoModal({ onClose }: { onClose: () => void }) {
         </ModalHeader>
         <ModalBody className="space-y-4">
           <Input label="Title" required value={title} onChange={(e) => setTitle(e.target.value)} />
-          <Select
+          <ComboField
             label="Industry"
             value={industry}
-            onChange={(e) => setIndustry(e.target.value)}
-            options={INDUSTRIES.map((i) => ({ value: i, label: i }))}
+            onChange={setIndustry}
+            options={industries}
           />
-          <Select
+          <ComboField
             label="Technology"
             value={technology}
-            onChange={(e) => setTechnology(e.target.value)}
-            options={TECHNOLOGIES.map((t) => ({ value: t, label: t }))}
+            onChange={setTechnology}
+            options={technologies}
           />
           <Input
             label="Description"

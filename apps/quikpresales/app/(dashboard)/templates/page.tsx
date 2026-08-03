@@ -10,9 +10,11 @@ import {
   Loading,
   ErrorNote,
   StatusPill,
+  ComboField,
 } from "@/components/ui-kit";
-import { TEMPLATE_KINDS, INDUSTRIES } from "@/lib/library/constants";
+import { TEMPLATE_KINDS } from "@/lib/library/constants";
 import { useMyPermissions } from "@/lib/hooks/useMyPermissions";
+import { useVocabulary, VOCABULARY_KEY } from "@/lib/hooks/useVocabulary";
 
 interface TemplateRow {
   id: string;
@@ -113,10 +115,11 @@ function CreateTemplateModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [industry, setIndustry] = useState("");
+  const { industries } = useVocabulary();
 
   const create = useApiMutation(
     (body: Record<string, unknown>) => api.post("/api/templates", body),
-    [["templates"], ["dashboard"]],
+    [["templates"], ["dashboard"], VOCABULARY_KEY],
   );
 
   return (
@@ -138,14 +141,12 @@ function CreateTemplateModal({ onClose }: { onClose: () => void }) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-          <Select
+          <ComboField
             label="Industry"
             value={industry}
-            onChange={(e) => setIndustry(e.target.value)}
-            options={[
-              { value: "", label: "Any" },
-              ...INDUSTRIES.map((i) => ({ value: i, label: i })),
-            ]}
+            onChange={setIndustry}
+            options={industries}
+            placeholder="Leave blank for Any — or type your own"
           />
           {create.error ? <ErrorNote error={create.error} /> : null}
         </ModalBody>
