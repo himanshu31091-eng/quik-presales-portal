@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useApiQuery, formatMoney, formatDate } from "@/lib/api-client";
+import { Select } from "@quikit/ui";
+import { useApiQuery, formatDate } from "@/lib/api-client";
+import { useDisplayCurrency } from "@/lib/hooks/useCurrency";
 import {
   PageHeader,
   Panel,
@@ -11,17 +13,22 @@ import {
   ErrorNote,
 } from "@/components/ui-kit";
 
+interface MoneyBucket {
+  currency: string | null;
+  minorUnits: string | null;
+}
+
 interface DashboardData {
   kpis: {
     activeEngagements: number;
-    pipelineValue: string;
+    pipelineByCurrency: MoneyBucket[];
     openRfps: number;
     winRatePct: number | null;
     demoSatisfaction: number | null;
     ratedDemos: number;
     reusableAssets: number;
   };
-  pipeline: { stage: string; label: string; count: number; value: string }[];
+  pipeline: { stage: string; label: string; count: number; money: MoneyBucket[] }[];
   proposals: Record<string, number>;
   dealHealth: Record<string, number>;
   assets: { templates: number; demos: number; knowledge: number };
@@ -31,6 +38,7 @@ interface DashboardData {
     title: string;
     stage: string;
     estRevenue: string | null;
+    currency: string | null;
     expectedClose: string | null;
   }[];
   recentActivity: {
@@ -43,6 +51,16 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
+  const {
+    formatTotal,
+    formatConverted,
+    displayCurrency,
+    setDisplayCurrency,
+    currencies,
+    rateSource,
+    rateAsOf,
+  } = useDisplayCurrency();
+
   const { data, isLoading, error } = useApiQuery<DashboardData>(
     ["dashboard"],
     "/api/dashboard?days=30",
@@ -60,11 +78,29 @@ export default function DashboardPage() {
       <PageHeader
         title="Pre-Sales Dashboard"
         subtitle={`Last ${thisPeriod.days} days · ${thisPeriod.newEngagements} new engagements, ${thisPeriod.newProposals} proposals, ${thisPeriod.newRfps} RFPs`}
+        actions={
+          <div className="flex flex-col items-end gap-1">
+            <Select
+              value={displayCurrency}
+              onChange={(e) => setDisplayCurrency(e.target.value)}
+              options={currencies.map((c) => ({ value: c.code, label: `${c.code} — ${c.name}` }))}
+              className="min-w-[190px]"
+            />
+            {/* Never present a converted figure without saying how current the
+                rate behind it is. */}
+            {rateSource ? (
+              <span className="text-xs text-gray-400">
+                {rateSource === "live" ? "Live rates" : "Offline rates"}
+                {rateAsOf ? ` · ${rateAsOf.replace(/ \+0000$/, "")}` : ""}
+              </span>
+            ) : null}
+          </div>
+        }
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatTile label="Active Engagements" value={kpis.activeEngagements} href="/engagements" />
-        <StatTile label="Pipeline Value" value={formatMoney(kpis.pipelineValue)} />
+        <StatTile label="Pipeline Value" value={formatTotal(kpis.pipelineByCurrency)} />
         <StatTile label="Open RFPs" value={kpis.openRfps} href="/rfps" />
         <StatTile
           label="Win Rate"
@@ -104,7 +140,7 @@ export default function DashboardPage() {
                     {s.count}
                   </span>
                   <span className="w-28 shrink-0 text-right text-xs text-gray-500">
-                    {formatMoney(s.value)}
+                    {formatTotal(s.money)}
                   </span>
                 </li>
               ))}
@@ -162,7 +198,7 @@ export default function DashboardPage() {
                     {e.title}
                   </Link>
                   <span className="ml-3 shrink-0 text-xs text-gray-500">
-                    {formatDate(e.expectedClose)} · {formatMoney(e.estRevenue)}
+                    {formatDate(e.expectedClose)} · {formatConverted(e.estRevenue, e.currency)}
                   </span>
                 </li>
               ))}

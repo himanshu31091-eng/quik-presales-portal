@@ -53,13 +53,20 @@ export const GET = withDashboardAuth(async ({ orgId, userId }, req) => {
       recentActivity,
       upcomingCloses,
     ] = await Promise.all([
+      // Grouped by stage AND currency. estRevenue is an integer count of minor
+      // units, so summing across currencies adds paise to cents and produces a
+      // meaningless figure — the client converts each bucket before totalling.
       db.psEngagement.groupBy({
-        by: ["stage"],
+        by: ["stage", "currency"],
         where: openEngagements,
         _count: true,
         _sum: { estRevenue: true },
       }),
-      db.psEngagement.aggregate({ where: openEngagements, _sum: { estRevenue: true } }),
+      db.psEngagement.groupBy({
+        by: ["currency"],
+        where: openEngagements,
+        _sum: { estRevenue: true },
+      }),
       db.psEngagement.count({ where: { orgId, deletedAt: null, closedStatus: "won" } }),
       db.psEngagement.count({ where: { orgId, deletedAt: null, closedStatus: "lost" } }),
       db.psRfp.count({ where: { orgId, status: { notIn: ["submitted"] } } }),
@@ -99,13 +106,34 @@ export const GET = withDashboardAuth(async ({ orgId, userId }, req) => {
       }),
       db.psEngagement.findMany({
         where: { ...openEngagements, expectedClose: { not: null, gte: new Date() } },
-        select: { id: true, title: true, stage: true, estRevenue: true, expectedClose: true },
+        // currency travels with the amount — a bare estRevenue cannot be rendered
+        // or converted correctly on its own.
+        select: {
+          id: true,
+          title: true,
+          stage: true,
+          estRevenue: true,
+          currency: true,
+          expectedClose: true,
+        },
         orderBy: { expectedClose: "asc" },
         take: 8,
       }),
     ]);
 
-    const stageMap = new Map(byStage.map((r) => [r.stage, r]));
+    // Per stage: a total count plus one money bucket per currency present. The
+    // client converts and totals, because only it knows the chosen display
+    // currency.
+    const stageBuckets = new Map<string, { count: number; money: { currency: string; minorUnits: string }[] }>();
+    for (const row of byStage) {
+      const entry = stageBuckets.get(row.stage) ?? { count: 0, money: [] };
+      entry.count += row._count;
+      const minor = row._sum.estRevenue;
+      if (minor !== null && minor !== 0n) {
+        entry.money.push({ currency: row.currency ?? "INR", minorUnits: minor.toString() });
+      }
+      stageBuckets.set(row.stage, entry);
+    }
     const [templates, demos, knowledge] = assetCounts;
     const [newEngagements, newProposals, newRfps] = newThisPeriod;
 
@@ -114,7 +142,15 @@ export const GET = withDashboardAuth(async ({ orgId, userId }, req) => {
     return {
       kpis: {
         activeEngagements: byStage.reduce((sum, r) => sum + r._count, 0),
-        pipelineValue: (pipelineValue._sum.estRevenue ?? 0n).toString(),
+        // One bucket per currency in the open pipeline. The client converts these
+        // into the display currency it is showing; there is no single correct
+        // scalar to send here.
+        pipelineByCurrency: pipelineValue
+          .filter((r) => r._sum.estRevenue !== null && r._sum.estRevenue !== 0n)
+          .map((r) => ({
+            currency: r.currency ?? "INR",
+            minorUnits: (r._sum.estRevenue ?? 0n).toString(),
+          })),
         openRfps,
         // Guard the divide — an org with no closed deals should show null, not NaN.
         winRatePct: closed > 0 ? Math.round((wonCount / closed) * 100) : null,
@@ -128,8 +164,8 @@ export const GET = withDashboardAuth(async ({ orgId, userId }, req) => {
       pipeline: ACTIVE_STAGES.map((stage) => ({
         stage,
         label: STAGE_LABEL[stage as Stage],
-        count: stageMap.get(stage)?._count ?? 0,
-        value: (stageMap.get(stage)?._sum.estRevenue ?? 0n).toString(),
+        count: stageBuckets.get(stage)?.count ?? 0,
+        money: stageBuckets.get(stage)?.money ?? [],
       })),
       proposals: Object.fromEntries(proposalsByStatus.map((r) => [r.status, r._count])),
       dealHealth: Object.fromEntries(
