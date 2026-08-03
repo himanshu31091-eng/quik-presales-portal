@@ -394,9 +394,11 @@ try {
   for (const [engagementId, outcome, competitor, reasonCategory, reasonText, lessons, dealSize] of WINLOSS) {
     if (!engagementId) continue;
     const existing = await db.psWinLoss.findFirst({ where: { orgId, engagementId }, select: { id: true } });
-    const data = { outcome, competitor, reasonCategory, reasonText, lessons, dealSize, updatedBy: userId };
+    // PsWinLoss tracks who captured it as `capturedById` — it has no
+    // createdBy/updatedBy columns, unlike most models here.
+    const data = { outcome, competitor, reasonCategory, reasonText, lessons, dealSize, capturedById: userId };
     if (existing) await db.psWinLoss.update({ where: { id: existing.id }, data });
-    else await db.psWinLoss.create({ data: { orgId, engagementId, ...data, createdBy: userId } });
+    else await db.psWinLoss.create({ data: { orgId, engagementId, ...data } });
   }
   log(`${WINLOSS.length} win/loss records`);
 
@@ -445,7 +447,10 @@ try {
   log(`reusable assets: ${reusable}`);
   log("complete");
 } catch (e) {
-  console.error("seed FAILED:", String(e.message).split("\n")[0]);
+  // Print the whole message, not the first line. Prisma validation errors put a
+  // blank line first and the actual reason several lines down, so truncating to
+  // line one reports "seed FAILED:" and nothing else — which is what happened.
+  console.error("seed FAILED:", e?.message ?? e);
   process.exitCode = 1;
 } finally {
   await db.$disconnect();
