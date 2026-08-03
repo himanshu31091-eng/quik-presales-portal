@@ -4,7 +4,7 @@ import { requirePermission } from "@/lib/api/rbac";
 import { notFound, fail } from "@/lib/api/responses";
 import { writeAudit } from "@/lib/api/audit";
 import { db } from "@/lib/db";
-import { paiseToMajorNumber } from "@/lib/estimates/money";
+import { minorToMajorNumber } from "@/lib/estimates/money";
 
 const withEstimateAuth = withOrgAuthForModule("estimates");
 
@@ -77,9 +77,9 @@ export const POST = withEstimateAuth<{ id: string }>(
         line.role ?? "",
         line.quantity,
         line.unit ?? "",
-        paiseToMajorNumber(line.rate),
+        minorToMajorNumber(line.rate, estimate.currency),
         // Live formula so the sheet recalculates if the recipient edits it.
-        { formula: `D${r}*F${r}`, result: paiseToMajorNumber(line.amount) },
+        { formula: `D${r}*F${r}`, result: minorToMajorNumber(line.amount, estimate.currency) },
       ];
     });
 
@@ -91,7 +91,7 @@ export const POST = withEstimateAuth<{ id: string }>(
     sheet.getCell(`F${totalRow}`).font = { bold: true };
     sheet.getCell(`G${totalRow}`).value = {
       formula: `SUM(G${firstDataRow}:G${lastDataRow})`,
-      result: paiseToMajorNumber(estimate.totalAmount),
+      result: minorToMajorNumber(estimate.totalAmount, estimate.currency),
     };
     sheet.getCell(`G${totalRow}`).font = { bold: true };
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMinorUnits } from "@/lib/currency/currencies";
 import { useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 
 /**
@@ -107,15 +108,20 @@ export async function downloadFile(path: string, body: unknown): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
-/** Paise string → display string, e.g. "12345678" → "1,23,456.78" grouping-free. */
-export function formatMoney(paise: string | null | undefined, currency = "INR"): string {
-  if (!paise) return "—";
-  const n = Number(paise) / 100;
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(n);
+/**
+ * Minor-units string → display string, e.g. "45000000" + INR → "₹4,50,000".
+ *
+ * Delegates to the currency module so the divisor comes from the currency's own
+ * exponent. This used to divide by 100 unconditionally, which reported every
+ * zero-decimal currency (JPY, KRW) as 1/100th of its real value and every
+ * three-decimal one (KWD, BHD) as 10x. Callers that already know the record's
+ * currency get the right answer by passing it; the default stays INR.
+ *
+ * For a figure that should be shown in the *reader's* chosen currency rather
+ * than the record's, use `formatConverted` from `useDisplayCurrency` instead.
+ */
+export function formatMoney(minorUnits: string | null | undefined, currency = "INR"): string {
+  return formatMinorUnits(minorUnits, currency);
 }
 
 export function formatDate(value: string | null | undefined): string {

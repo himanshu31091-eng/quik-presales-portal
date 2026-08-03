@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button, Select } from "@quikit/ui";
-import { useApiQuery, downloadFile, formatMoney, formatDate, type Paginated } from "@/lib/api-client";
+import { useApiQuery, downloadFile, formatDate, type Paginated } from "@/lib/api-client";
+import { useDisplayCurrency } from "@/lib/hooks/useCurrency";
 import {
   PageHeader,
   TableShell,
@@ -25,6 +26,10 @@ interface EstimateRow {
 }
 
 export default function EstimatesPage() {
+  // Estimates are priced in the currency of the deal, so a list of them is
+  // mixed. The switcher lets them be compared without rewriting any record.
+  const { formatConverted, displayCurrency, setDisplayCurrency, currencies, rateSource } =
+    useDisplayCurrency();
   const [status, setStatus] = useState("");
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -50,6 +55,21 @@ export default function EstimatesPage() {
       <PageHeader
         title="Cost Estimator"
         subtitle="Line-item estimates with Excel export. Create one from an engagement."
+        actions={
+          <div className="flex flex-col items-end gap-1">
+            <Select
+              value={displayCurrency}
+              onChange={(e) => setDisplayCurrency(e.target.value)}
+              options={currencies.map((c) => ({ value: c.code, label: `Compare in ${c.code}` }))}
+              className="min-w-[180px]"
+            />
+            {rateSource ? (
+              <span className="text-xs text-gray-400">
+                {rateSource === "live" ? "Live rates" : "Offline rates"}
+              </span>
+            ) : null}
+          </div>
+        }
       />
 
       <div className="mb-4">
@@ -87,7 +107,7 @@ export default function EstimatesPage() {
                 </td>
                 <td className="px-4 py-2.5 text-gray-600">{e._count.lines}</td>
                 <td className="px-4 py-2.5 font-medium text-gray-900">
-                  {formatMoney(e.totalAmount, e.currency)}
+                  {formatConverted(e.totalAmount, e.currency)}
                 </td>
                 <td className="px-4 py-2.5">
                   <StatusPill status={e.status} />
