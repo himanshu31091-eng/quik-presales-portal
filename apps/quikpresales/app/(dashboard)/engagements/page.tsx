@@ -7,7 +7,7 @@ import {
   api,
   useApiQuery,
   useApiMutation,
-  formatMoney,
+
   formatDate,
   type Paginated,
 } from "@/lib/api-client";
@@ -23,6 +23,8 @@ import {
 import { ACTIVE_STAGES, STAGE_LABEL, type Stage } from "@/lib/pipeline";
 import { useMyPermissions } from "@/lib/hooks/useMyPermissions";
 import { useVocabulary, VOCABULARY_KEY } from "@/lib/hooks/useVocabulary";
+import { useDisplayCurrency } from "@/lib/hooks/useCurrency";
+import { toMinorUnits } from "@/lib/currency/currencies";
 
 interface EngagementRow {
   id: string;
@@ -31,6 +33,7 @@ interface EngagementRow {
   stage: string;
   closedStatus: string;
   estRevenue: string | null;
+  currency: string | null;
   probability: number;
   expectedClose: string | null;
   aiDealHealth: string | null;
@@ -39,6 +42,9 @@ interface EngagementRow {
 
 export default function EngagementsPage() {
   const { can } = useMyPermissions();
+  // Values are stored in the currency each deal was sold in and converted for
+  // display only, so the list reads in one currency without rewriting any record.
+  const { formatConverted, displayCurrency, setDisplayCurrency, currencies } = useDisplayCurrency();
   const [stage, setStage] = useState("");
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
@@ -82,6 +88,12 @@ export default function EngagementsPage() {
           ]}
           className="max-w-[180px]"
         />
+        <Select
+          value={displayCurrency}
+          onChange={(e) => setDisplayCurrency(e.target.value)}
+          options={currencies.map((c) => ({ value: c.code, label: `View in ${c.code}` }))}
+          className="max-w-[160px]"
+        />
       </div>
 
       {error ? <ErrorNote error={error} /> : null}
@@ -111,7 +123,7 @@ export default function EngagementsPage() {
                     label={STAGE_LABEL[e.stage as Stage] ?? e.stage}
                   />
                 </td>
-                <td className="px-4 py-2.5 text-gray-900">{formatMoney(e.estRevenue)}</td>
+                <td className="px-4 py-2.5 text-gray-900">{formatConverted(e.estRevenue, e.currency)}</td>
                 <td className="px-4 py-2.5 text-gray-600">{e.probability}%</td>
                 <td className="px-4 py-2.5 text-gray-600">{formatDate(e.expectedClose)}</td>
                 <td className="px-4 py-2.5">
@@ -135,6 +147,10 @@ function CreateEngagementModal({ onClose }: { onClose: () => void }) {
   const [revenue, setRevenue] = useState("");
   const [crmOpportunityId, setCrmOpportunityId] = useState("");
   const { industries } = useVocabulary();
+  const { currencies, displayCurrency } = useDisplayCurrency();
+  // Default the new record to whatever the user is currently viewing in — most
+  // people enter deals in the currency they are already thinking in.
+  const [currency, setCurrency] = useState(displayCurrency);
 
   const create = useApiMutation(
     (body: Record<string, unknown>) => api.post("/api/engagements", body),
@@ -148,8 +164,11 @@ function CreateEngagementModal({ onClose }: { onClose: () => void }) {
       {
         title,
         ...(industry ? { industry } : {}),
-        // The API takes paise; the form takes rupees.
-        ...(revenue ? { estRevenue: String(Math.round(Number(revenue) * 100)) } : {}),
+        // The column stores minor units, and the exponent is per-currency — 2 for
+        // INR, 0 for JPY. Hardcoding x100 misstored every zero-decimal currency
+        // by 100x.
+        ...(revenue ? { estRevenue: toMinorUnits(Number(revenue), currency).toString() } : {}),
+        currency,
         ...(crmOpportunityId ? { crmOpportunityId } : {}),
       },
       { onSuccess: onClose },
@@ -177,13 +196,23 @@ function CreateEngagementModal({ onClose }: { onClose: () => void }) {
             options={industries}
             placeholder="e.g. Manufacturing — or type your own"
           />
-          <Input
-            label="Estimated revenue (₹)"
-            type="number"
-            min={0}
-            value={revenue}
-            onChange={(e) => setRevenue(e.target.value)}
-          />
+          <div className="grid grid-cols-[1fr_130px] gap-3">
+            <Input
+              label="Estimated revenue"
+              type="number"
+              min={0}
+              step="any"
+              value={revenue}
+              onChange={(e) => setRevenue(e.target.value)}
+              placeholder="0"
+            />
+            <Select
+              label="Currency"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              options={currencies.map((c) => ({ value: c.code, label: c.code }))}
+            />
+          </div>
           <Input
             label="CRM opportunity ID"
             value={crmOpportunityId}
