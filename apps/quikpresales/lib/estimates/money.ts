@@ -1,10 +1,16 @@
+import { DEFAULT_CURRENCY, exponentOf } from "@/lib/currency/currencies";
+
 /**
  * Money handling for cost estimates.
  *
- * Everything is BigInt paise (the smallest currency unit) end to end. Floats
- * are never used for money — a rate of ₹1,234.56 stored as a float and
- * multiplied by a fractional quantity drifts, and an estimate that doesn't
- * foot is worse than no estimate.
+ * Everything is BigInt **minor units** end to end — paise for INR, cents for USD,
+ * whole yen for JPY, which has no minor unit at all. Floats are never used for
+ * money: a rate of ₹1,234.56 stored as a float and multiplied by a fractional
+ * quantity drifts, and an estimate that doesn't foot is worse than no estimate.
+ *
+ * The number of minor units per major unit is NOT always 100, so anything
+ * crossing between the two takes the estimate's `currency` and reads the exponent
+ * from it. Hardcoding /100 misreported JPY by 100x and KWD by 10x.
  *
  * `quantity` IS a float (0.5 days, 1.5 FTE), so line amounts are computed as
  * `round(rate * quantity)` with the rounding done once, in one place.
@@ -36,17 +42,36 @@ export function parsePaise(value: string): bigint | null {
   return BigInt(value);
 }
 
-/** Paise → major units as a Number, for spreadsheet cells only. */
-export function paiseToMajorNumber(paise: bigint): number {
-  return Number(paise) / 100;
+/**
+ * Minor units → major units as a Number, for spreadsheet cells only.
+ *
+ * The divisor comes from the currency, not a hardcoded 100: an estimate priced in
+ * JPY has no minor unit, so ¥1,000,000 is stored as 1000000 and dividing by 100
+ * would export it as ¥10,000. Pass the estimate's own `currency`.
+ */
+export function minorToMajorNumber(minor: bigint, currency = DEFAULT_CURRENCY): number {
+  return Number(minor) / 10 ** exponentOf(currency);
 }
 
-/** Human-readable, e.g. 123456789n → "1,234,567.89". */
-export function formatPaise(paise: bigint): string {
-  const negative = paise < 0n;
-  const abs = negative ? -paise : paise;
-  const major = abs / 100n;
-  const minor = abs % 100n;
+/**
+ * Human-readable, e.g. 123456789n + INR → "1,234,567.89".
+ *
+ * Stays BigInt-only — no float division — so a large estimate cannot lose
+ * precision on its way to the screen. Decimal places follow the currency, so a
+ * JPY total renders as "1,000,000" and a KWD one as "1,234.567".
+ */
+export function formatMinor(minor: bigint, currency = DEFAULT_CURRENCY): string {
+  const exponent = exponentOf(currency);
+  const negative = minor < 0n;
+  const abs = negative ? -minor : minor;
+
+  const divisor = 10n ** BigInt(exponent);
+  const major = abs / divisor;
   const grouped = major.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return `${negative ? "-" : ""}${grouped}.${minor.toString().padStart(2, "0")}`;
+  const sign = negative ? "-" : "";
+
+  if (exponent === 0) return `${sign}${grouped}`;
+
+  const fraction = (abs % divisor).toString().padStart(exponent, "0");
+  return `${sign}${grouped}.${fraction}`;
 }

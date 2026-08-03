@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   computeLineAmount,
-  formatPaise,
-  paiseToMajorNumber,
+  formatMinor,
+  minorToMajorNumber,
   parsePaise,
   sumAmounts,
 } from "@/lib/estimates/money";
@@ -47,13 +47,40 @@ describe("estimate money maths", () => {
     expect(parsePaise("")).toBeNull();
   });
 
-  it("converts paise to major units for spreadsheet cells", () => {
-    expect(paiseToMajorNumber(123_456n)).toBe(1234.56);
+  it("converts minor to major units for spreadsheet cells", () => {
+    expect(minorToMajorNumber(123_456n, "INR")).toBe(1234.56);
+    expect(minorToMajorNumber(123_456n)).toBe(1234.56);
   });
 
-  it("formats paise with grouping and two decimals", () => {
-    expect(formatPaise(123_456_789n)).toBe("1,234,567.89");
-    expect(formatPaise(5n)).toBe("0.05");
-    expect(formatPaise(0n)).toBe("0.00");
+  it("uses the currency's exponent, not a hardcoded 100", () => {
+    // The bug: exporting a ¥1,000,000 estimate as ¥10,000, and a KWD one 10x out.
+    expect(minorToMajorNumber(1_000_000n, "JPY")).toBe(1_000_000);
+    expect(minorToMajorNumber(1_234n, "KWD")).toBe(1.234);
+  });
+
+  it("formats with grouping and the currency's decimals", () => {
+    expect(formatMinor(123_456_789n, "INR")).toBe("1,234,567.89");
+    expect(formatMinor(5n, "INR")).toBe("0.05");
+    expect(formatMinor(0n, "INR")).toBe("0.00");
+  });
+
+  it("omits the decimal point for a currency with no minor unit", () => {
+    expect(formatMinor(1_000_000n, "JPY")).toBe("1,000,000");
+    expect(formatMinor(0n, "JPY")).toBe("0");
+  });
+
+  it("keeps three decimals for the Gulf dinars", () => {
+    expect(formatMinor(1_234n, "KWD")).toBe("1.234");
+    expect(formatMinor(7n, "KWD")).toBe("0.007");
+  });
+
+  it("formats negatives with the sign outside the grouping", () => {
+    expect(formatMinor(-123_456n, "INR")).toBe("-1,234.56");
+    expect(formatMinor(-1_000n, "JPY")).toBe("-1,000");
+  });
+
+  it("stays exact for amounts beyond Number.MAX_SAFE_INTEGER", () => {
+    // formatMinor is BigInt-only precisely so a very large estimate cannot drift.
+    expect(formatMinor(9_007_199_254_740_993_00n, "INR")).toBe("9,007,199,254,740,993.00");
   });
 });
