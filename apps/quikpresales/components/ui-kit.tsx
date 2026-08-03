@@ -12,6 +12,73 @@ import { cn } from "@/lib/utils";
  * re-implements a shared component.
  */
 
+/**
+ * A text field with suggestions that also accepts anything you type.
+ *
+ * For open vocabularies — industry, technology — where the column is free text
+ * and orgs are explicitly allowed their own terms. A `<Select>` cannot express
+ * that: it can only offer a closed list.
+ *
+ * Built on a native `<datalist>` rather than a custom dropdown deliberately.
+ * Keyboard handling, filter-as-you-type, screen-reader semantics and mobile
+ * pickers all come from the browser, so there is no focus trap or ARIA wiring to
+ * get wrong — and no shared @quikit/ui component is being re-implemented, since
+ * none offers a combobox.
+ *
+ * Values are trimmed on the way out; the caller stores exactly what is shown.
+ */
+export function ComboField({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  hint,
+  id,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: readonly string[];
+  placeholder?: string;
+  hint?: string;
+  id?: string;
+}) {
+  // Stable per-instance id so multiple ComboFields on one form don't collide on
+  // their datalist, which would show the wrong suggestions.
+  const fieldId = id ?? `combo-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  const listId = `${fieldId}-options`;
+
+  return (
+    <div>
+      <label htmlFor={fieldId} className="mb-1 block text-sm text-gray-600">
+        {label}
+      </label>
+      <input
+        id={fieldId}
+        list={listId}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={(e) => {
+          const trimmed = e.target.value.trim();
+          if (trimmed !== e.target.value) onChange(trimmed);
+        }}
+        placeholder={placeholder ?? "Type or pick…"}
+        autoComplete="off"
+        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
+      />
+      <datalist id={listId}>
+        {options.map((option) => (
+          <option key={option} value={option} />
+        ))}
+      </datalist>
+      <p className="mt-1 text-xs text-gray-400">
+        {hint ?? "Pick a suggestion or type a new one — it will be offered next time."}
+      </p>
+    </div>
+  );
+}
+
 export function PageHeader({
   title,
   subtitle,
