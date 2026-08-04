@@ -5,6 +5,7 @@ import { okSerialized, validationError } from "@/lib/api/responses";
 import { db } from "@/lib/db";
 import { cacheOrCompute } from "@quikit/shared/redisCache";
 import { ACTIVE_STAGES, STAGE_LABEL, type Stage } from "@/lib/pipeline";
+import { PRACTICES, practiceOf, spansMultiplePractices } from "@/lib/practices";
 
 const withDashboardAuth = withOrgAuthForModule("dashboard");
 
@@ -53,6 +54,7 @@ export const GET = withDashboardAuth(async ({ orgId, userId }, req) => {
       newThisPeriod,
       dealHealth,
       recentActivity,
+      practiceRows,
       upcomingCloses,
     ] = await Promise.all([
       // Grouped by stage AND currency. estRevenue is an integer count of minor
@@ -118,6 +120,13 @@ export const GET = withDashboardAuth(async ({ orgId, userId }, req) => {
         orderBy: { createdAt: "desc" },
         take: 15,
       }),
+      // Practice is derived from techStack until PsEngagement gains a `practice`
+      // column, so it cannot be grouped in SQL — fetch the open deals and bucket
+      // them in memory. Bounded by the open pipeline, which is small.
+      db.psEngagement.findMany({
+        where: openEngagements,
+        select: { techStack: true, estRevenue: true, currency: true },
+      }),
       db.psEngagement.findMany({
         where: { ...openEngagements, expectedClose: { not: null, gte: new Date() } },
         // currency travels with the amount — a bare estRevenue cannot be rendered
@@ -151,6 +160,32 @@ export const GET = withDashboardAuth(async ({ orgId, userId }, req) => {
     const [templates, demos, knowledge] = assetCounts;
     const [newEngagements, newProposals, newRfps, prevEngagements, prevProposals, prevRfps] =
       newThisPeriod;
+
+    /**
+     * Pipeline value grouped by delivery practice, one money bucket per currency
+     * within each practice — the client converts and totals, as it does elsewhere.
+     *
+     * `derived: true` is reported so the UI can say so. Practice is inferred from
+     * technology today; once PsEngagement carries a real column this flips to
+     * false and the caveat disappears from the panel.
+     */
+    const practiceBuckets = new Map<string, { currency: string; minorUnits: bigint }[]>();
+    let practiceDealCount = 0;
+    let multiPracticeDeals = 0;
+
+    for (const row of practiceRows) {
+      const practice = practiceOf(row.techStack);
+      if (spansMultiplePractices(row.techStack)) multiPracticeDeals += 1;
+      if (row.estRevenue === null || row.estRevenue === 0n) continue;
+
+      practiceDealCount += 1;
+      const currency = row.currency ?? "INR";
+      const existing = practiceBuckets.get(practice) ?? [];
+      const bucket = existing.find((b) => b.currency === currency);
+      if (bucket) bucket.minorUnits += row.estRevenue;
+      else existing.push({ currency, minorUnits: row.estRevenue });
+      practiceBuckets.set(practice, existing);
+    }
 
     /**
      * Percentage change against the previous window.
@@ -203,6 +238,20 @@ export const GET = withDashboardAuth(async ({ orgId, userId }, req) => {
        * include open count, pipeline value or win rate — those are snapshots, and
        * comparing them needs history this app does not keep.
        */
+      practicePipeline: {
+        /** Practice is inferred from technology, not stored. Surfaced so the UI says so. */
+        derived: true,
+        dealsWithValue: practiceDealCount,
+        /** Deals whose technologies span practices, attributed to just one. */
+        multiPracticeDeals,
+        rows: PRACTICES.filter((p) => practiceBuckets.has(p)).map((practice) => ({
+          practice,
+          money: (practiceBuckets.get(practice) ?? []).map((b) => ({
+            currency: b.currency,
+            minorUnits: b.minorUnits.toString(),
+          })),
+        })),
+      },
       trends: {
         newEngagements: {
           current: newEngagements,

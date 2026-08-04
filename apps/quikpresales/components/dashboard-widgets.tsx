@@ -47,9 +47,11 @@ export function TrendDelta({
 
   if (trend.deltaPct === null) {
     // "Up from zero" has no percentage. Say what actually happened instead.
+    // `periodLabel` already carries the noun ("new in 30d"), so nothing is
+    // prefixed here — doing both produced "9 new new in 30d".
     return (
       <p className="mt-1 text-xs text-gray-400">
-        {trend.current > 0 ? `${trend.current} new` : "None"} {periodLabel}
+        {trend.current > 0 ? `${trend.current} ${periodLabel}` : `None ${periodLabel}`}
       </p>
     );
   }
@@ -142,6 +144,85 @@ export const KPI_ICONS = {
   assets: Library,
   pipeline: DollarSign,
 } as const;
+
+/* ─────────────────── Pipeline value by practice ─────────────────── */
+
+export interface PracticeRow {
+  practice: string;
+  money: { currency: string | null; minorUnits: string | null }[];
+}
+
+/**
+ * Horizontal bars, deliberately CSS rather than a charting library.
+ *
+ * One quantity per row on a shared scale needs no chart engine, and adding a
+ * dependency for it would be disproportionate — the donut and trend line in the
+ * design genuinely do need one.
+ *
+ * Bar width scales to the largest practice, so the comparison is between
+ * practices. `formatTotal` converts each practice's per-currency buckets into the
+ * reader's display currency.
+ */
+export function PracticePipelinePanel({
+  data,
+  formatTotal,
+  toMajor,
+}: {
+  data?: {
+    derived: boolean;
+    dealsWithValue: number;
+    multiPracticeDeals: number;
+    rows: PracticeRow[];
+  };
+  formatTotal: (buckets: { currency: string | null; minorUnits: string | null }[]) => string;
+  /** Converts a practice's buckets to a comparable number, for bar scaling. */
+  toMajor: (buckets: { currency: string | null; minorUnits: string | null }[]) => number;
+}) {
+  if (!data || data.rows.length === 0) {
+    return (
+      <Panel title="Pipeline Value by Practice">
+        <p className="py-6 text-center text-sm text-gray-400">
+          No open deals carry both a value and a recognised technology yet.
+        </p>
+      </Panel>
+    );
+  }
+
+  const scaled = data.rows.map((r) => ({ ...r, major: toMajor(r.money) }));
+  const max = Math.max(1, ...scaled.map((r) => r.major));
+
+  return (
+    <Panel title="Pipeline Value by Practice">
+      <ul className="space-y-3">
+        {scaled.map((r) => (
+          <li key={r.practice} className="flex items-center gap-3">
+            <span className="w-28 shrink-0 truncate text-sm text-gray-700">{r.practice}</span>
+            <div className="h-6 flex-1 overflow-hidden rounded bg-gray-100">
+              <div
+                className="h-full rounded bg-accent-500"
+                style={{ width: `${Math.max(2, (r.major / max) * 100)}%` }}
+              />
+            </div>
+            <span className="w-32 shrink-0 text-right text-xs text-gray-600">
+              {formatTotal(r.money)}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      {/* Never present a derived figure as a recorded one. */}
+      {data.derived ? (
+        <p className="mt-3 border-t border-gray-100 pt-2 text-xs text-gray-400">
+          Practice is inferred from each deal&rsquo;s technology — deals do not yet carry a
+          practice field.
+          {data.multiPracticeDeals > 0
+            ? ` ${data.multiPracticeDeals} deal(s) span more than one practice and are counted once.`
+            : ""}
+        </p>
+      ) : null}
+    </Panel>
+  );
+}
 
 /* ───────────────────────── Quick actions ───────────────────────── */
 

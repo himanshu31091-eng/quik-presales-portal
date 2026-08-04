@@ -107,9 +107,23 @@ export function useDisplayCurrency() {
     [displayCurrency, rates, displayExponent],
   );
 
+  /**
+   * The numeric total in the display currency, for scaling bars and comparing
+   * groups. Separate from formatTotal, which returns a formatted string and
+   * cannot be used arithmetically.
+   */
+  const totalMajor = useCallback(
+    (buckets: { currency: string | null; minorUnits: string | null }[] | undefined) => {
+      if (!buckets || buckets.length === 0) return 0;
+      return sumInCurrency(buckets, displayCurrency, rates).totalMajor;
+    },
+    [displayCurrency, rates],
+  );
+
   return {
     displayCurrency,
     setDisplayCurrency,
+    totalMajor,
     currencies,
     rates,
     /** "live" or "fallback" — surfaced so a stale rate is never presented as current. */
