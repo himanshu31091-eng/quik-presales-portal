@@ -22,7 +22,9 @@ function req(days = 30) {
  * matter here, so everything else returns an empty shape.
  */
 function seed({ cur, prev }: { cur: [number, number, number]; prev: [number, number, number] }) {
-  mockDb.psEngagement.groupBy.mockResolvedValue([] as never);
+  // groupBy is heavily overloaded in Prisma's generated types, so the deep mock
+  // surfaces a union no single implementation signature satisfies. Cast the mock.
+  (mockDb.psEngagement.groupBy as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue([]);
   mockDb.psEngagement.count
     // openRfps/won/lost and the two engagement-count calls share this mock, so
     // order matters: won, lost, then new-this-period, then new-previous-period.
@@ -34,7 +36,7 @@ function seed({ cur, prev }: { cur: [number, number, number]; prev: [number, num
     .mockResolvedValueOnce(2 as never) // openRfps
     .mockResolvedValueOnce(cur[2] as never)
     .mockResolvedValueOnce(prev[2] as never);
-  mockDb.psProposal.groupBy.mockResolvedValue([] as never);
+  (mockDb.psProposal.groupBy as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue([]);
   mockDb.psProposal.count
     .mockResolvedValueOnce(cur[1] as never)
     .mockResolvedValueOnce(prev[1] as never);

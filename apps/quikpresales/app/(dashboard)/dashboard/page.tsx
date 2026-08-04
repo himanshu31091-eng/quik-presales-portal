@@ -8,6 +8,8 @@ import {
   KpiCard,
   KPI_ICONS,
   QuickActions,
+  PracticePipelinePanel,
+  type PracticeRow,
   type Trend,
   type QuickAction,
 } from "@/components/dashboard-widgets";
@@ -47,6 +49,12 @@ interface DashboardData {
   dealHealth: Record<string, number>;
   assets: { templates: number; demos: number; knowledge: number };
   thisPeriod: { days: number; newEngagements: number; newProposals: number; newRfps: number };
+  practicePipeline?: {
+    derived: boolean;
+    dealsWithValue: number;
+    multiPracticeDeals: number;
+    rows: PracticeRow[];
+  };
   trends?: {
     newEngagements: Trend;
     newProposals: Trend;
@@ -86,6 +94,7 @@ const QUICK_ACTIONS: QuickAction[] = [
 export default function DashboardPage() {
   const {
     formatTotal,
+    totalMajor,
     formatConverted,
     displayCurrency,
     setDisplayCurrency,
@@ -180,7 +189,11 @@ export default function DashboardPage() {
         <div className="lg:col-span-2">
           <QuickActions actions={QUICK_ACTIONS} />
         </div>
-        <div />
+        <PracticePipelinePanel
+          data={data.practicePipeline}
+          formatTotal={formatTotal}
+          toMajor={totalMajor}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
