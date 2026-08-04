@@ -431,6 +431,130 @@ try {
     log("timeline events already present");
   }
 
+  // ── Stage history, so the workspace tracker tells a story ────────────────
+  // The engagements above are created directly at their current stage, which
+  // leaves no stage-advanced events — and the tracker correctly renders every
+  // earlier stage as "skipped" rather than complete. Demo data should demonstrate
+  // the design, so walk each deal through the stages it plausibly passed.
+  const STAGE_PATH = [
+    "lead", "qualification", "discovery", "solution-design",
+    "demo", "poc", "proposal", "negotiation",
+  ];
+  const haveStageHistory = await db.psTimelineEvent.count({
+    where: { orgId, type: "stage-advanced" },
+  });
+  if (haveStageHistory === 0) {
+    let written = 0;
+    for (const e of ENGAGEMENTS) {
+      const id = engagementIds[e.title];
+      if (!id) continue;
+      // For won/lost/rejected deals, walk the whole path; otherwise stop at the
+      // current stage.
+      const endIndex = STAGE_PATH.includes(e.stage)
+        ? STAGE_PATH.indexOf(e.stage)
+        : STAGE_PATH.length - 1;
+
+      for (let i = 1; i <= endIndex; i++) {
+        // Space the transitions backwards so earlier stages carry earlier dates.
+        const daysAgo = (endIndex - i + 1) * 9 + 2;
+        await db.psTimelineEvent.create({
+          data: {
+            orgId,
+            engagementId: id,
+            type: "stage-advanced",
+            actorId: userId,
+            summary: `Moved from ${STAGE_PATH[i - 1]} to ${STAGE_PATH[i]}`,
+            payload: { fromStage: STAGE_PATH[i - 1], toStage: STAGE_PATH[i] },
+            createdAt: day(-daysAgo),
+          },
+        });
+        written += 1;
+      }
+    }
+    log(`${written} stage-advanced events`);
+  } else {
+    log("stage history already present");
+  }
+
+  // ── Rich deal-health payloads ────────────────────────────────────────────
+  // The six-dimension panel, win probability, biggest risk and next step all read
+  // from the timeline payload. Seeded events written before those fields existed
+  // render an empty panel, so rewrite them with the full shape.
+  const DIMENSION_NAMES = [
+    "Engagement", "Requirements", "Solution Fit",
+    "Competition", "Commercial", "Executive Support",
+  ];
+  const HEALTH_PROFILE = {
+    green: { win: 72, statuses: ["good", "good", "good", "at-risk", "good", "good"] },
+    amber: { win: 48, statuses: ["at-risk", "good", "good", "at-risk", "at-risk", "unknown"] },
+    red: { win: 21, statuses: ["weak", "at-risk", "at-risk", "weak", "weak", "weak"] },
+  };
+  for (const e of ENGAGEMENTS) {
+    if (!e.aiDealHealth) continue;
+    const id = engagementIds[e.title];
+    if (!id) continue;
+
+    const profile = HEALTH_PROFILE[e.aiDealHealth];
+    const payload = {
+      health: e.aiDealHealth,
+      riskScore: e.riskScore ?? 50,
+      winProbabilityPct: profile.win,
+      rationale:
+        e.aiDealHealth === "red"
+          ? `${e.daysInStage} days in this stage with a close date inside two weeks and a named incumbent.`
+          : e.aiDealHealth === "amber"
+            ? `${e.daysInStage} days in this stage; requirements are captured but commercial terms are unconfirmed.`
+            : `Recent activity, requirements captured and no material commercial concerns.`,
+      dimensions: DIMENSION_NAMES.map((name, i) => ({
+        name,
+        status: profile.statuses[i],
+        note: `${name} assessed from pipeline signals.`,
+      })),
+      biggestRisk:
+        e.aiDealHealth === "green"
+          ? { title: "Competitor discount pressure", severity: "low", detail: "Named competitor may undercut on price." }
+          : {
+              title: e.aiDealHealth === "red" ? "Close date will slip" : "Commercials unconfirmed",
+              severity: e.aiDealHealth === "red" ? "high" : "medium",
+              detail:
+                e.aiDealHealth === "red"
+                  ? "Negotiation has run long with no signed position and the target close is imminent."
+                  : "No approved budget range has been confirmed against the proposed scope.",
+            },
+      recommendedNextStep:
+        e.aiDealHealth === "red"
+          ? { action: "Escalate to an executive sponsor meeting this week", why: "Only senior air cover will hold the current close date." }
+          : { action: "Confirm the approved budget range with the buyer", why: "Unblocks a firm commercial proposal." },
+      risks:
+        e.aiDealHealth === "green"
+          ? ["Competitor pricing pressure"]
+          : ["Commercial terms unconfirmed", "Decision process not fully mapped"],
+      nextActions: ["Confirm budget range", "Schedule the technical deep-dive"],
+      isStub: false,
+    };
+
+    const existing = await db.psTimelineEvent.findFirst({
+      where: { orgId, engagementId: id, type: "deal-health-assessed" },
+      select: { id: true },
+    });
+    if (existing) {
+      await db.psTimelineEvent.update({ where: { id: existing.id }, data: { payload } });
+    } else {
+      await db.psTimelineEvent.create({
+        data: {
+          orgId,
+          engagementId: id,
+          type: "deal-health-assessed",
+          actorId: userId,
+          summary: `Deal health assessed as ${e.aiDealHealth} (risk ${e.riskScore ?? 50}/100)`,
+          payload,
+          createdAt: day(-1),
+        },
+      });
+    }
+  }
+  log(`deal-health payloads written for ${ENGAGEMENTS.filter((e) => e.aiDealHealth).length} engagements`);
+
   const counts = {
     engagements: await db.psEngagement.count({ where: { orgId, deletedAt: null } }),
     templates: await db.psTemplate.count({ where: { orgId } }),
