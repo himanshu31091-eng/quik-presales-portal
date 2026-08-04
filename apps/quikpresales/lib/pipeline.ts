@@ -13,6 +13,7 @@
  */
 
 export const STAGE_ORDER = [
+  "lead",
   "qualification",
   "discovery",
   "solution-design",
@@ -22,12 +23,20 @@ export const STAGE_ORDER = [
   "negotiation",
   "won",
   "lost",
+  "rejected",
 ] as const;
 
 export type Stage = (typeof STAGE_ORDER)[number];
 
-/** Stages an engagement can never leave. */
-export const TERMINAL_STAGES: readonly Stage[] = ["won", "lost"];
+/**
+ * Stages an engagement can never leave.
+ *
+ * `rejected` is distinct from `lost` on purpose. A lost deal was pursued and
+ * beaten; a rejected lead was never taken on. Folding rejections into `lost`
+ * would drag the win rate down with deals pre-sales deliberately declined, so
+ * they carry their own closed status and are excluded from win/loss rollups.
+ */
+export const TERMINAL_STAGES: readonly Stage[] = ["won", "lost", "rejected"];
 
 /** The linear part of the pipeline — everything before the terminal outcomes. */
 export const ACTIVE_STAGES: readonly Stage[] = STAGE_ORDER.filter(
@@ -35,6 +44,7 @@ export const ACTIVE_STAGES: readonly Stage[] = STAGE_ORDER.filter(
 );
 
 export const STAGE_LABEL: Record<Stage, string> = {
+  lead: "Lead",
   qualification: "Qualification",
   discovery: "Discovery",
   "solution-design": "Solution Design",
@@ -44,10 +54,12 @@ export const STAGE_LABEL: Record<Stage, string> = {
   negotiation: "Negotiation",
   won: "Won",
   lost: "Lost",
+  rejected: "Rejected",
 };
 
 /** Default probability applied when an engagement enters each stage. */
 export const STAGE_PROBABILITY: Record<Stage, number> = {
+  lead: 5,
   qualification: 10,
   discovery: 20,
   "solution-design": 35,
@@ -57,6 +69,7 @@ export const STAGE_PROBABILITY: Record<Stage, number> = {
   negotiation: 85,
   won: 100,
   lost: 0,
+  rejected: 0,
 };
 
 const STAGE_SET = new Set<string>(STAGE_ORDER);
@@ -120,9 +133,16 @@ export function canTransition(from: string, to: string): TransitionCheck {
   return { ok: true };
 }
 
-/** `closedStatus` implied by a target stage. */
-export function closedStatusFor(stage: Stage): "open" | "won" | "lost" {
+/**
+ * `closedStatus` implied by a target stage.
+ *
+ * `rejected` gets its own value rather than reusing `lost`, so dashboard win-rate
+ * queries — which count `won` against `lost` — never include a lead pre-sales
+ * declined to pursue.
+ */
+export function closedStatusFor(stage: Stage): "open" | "won" | "lost" | "rejected" {
   if (stage === "won") return "won";
   if (stage === "lost") return "lost";
+  if (stage === "rejected") return "rejected";
   return "open";
 }

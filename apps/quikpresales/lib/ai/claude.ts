@@ -53,7 +53,8 @@ export type UseCase =
   | "architecture.assist"
   | "estimate.suggest_lines"
   | "meeting.summarize"
-  | "engagement.deal_health";
+  | "engagement.deal_health"
+  | "lead.evaluate_requirements";
 
 export interface ClaudeCallOptions {
   useCase: UseCase;
