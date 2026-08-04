@@ -37,6 +37,8 @@ export const GET = withDashboardAuth(async ({ orgId, userId }, req) => {
 
   const data = await cacheOrCompute(`ps:dashboard:${orgId}:${days}`, CACHE_TTL, async () => {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    /** Start of the equal-length window immediately before `since`. */
+    const previousSince = new Date(Date.now() - 2 * days * 24 * 60 * 60 * 1000);
     const openEngagements = { orgId, deletedAt: null, closedStatus: "open" };
 
     const [
@@ -85,6 +87,18 @@ export const GET = withDashboardAuth(async ({ orgId, userId }, req) => {
         db.psEngagement.count({ where: { orgId, deletedAt: null, createdAt: { gte: since } } }),
         db.psProposal.count({ where: { orgId, createdAt: { gte: since } } }),
         db.psRfp.count({ where: { orgId, createdAt: { gte: since } } }),
+        // The preceding window of equal length, for the "vs last period" deltas.
+        // Only FLOW metrics get a comparison: how many things were created in each
+        // window is genuinely computable. Snapshot metrics (open count, pipeline
+        // value, win rate) would need historical snapshots nobody records, and a
+        // fabricated trend arrow on a leadership dashboard is worse than none.
+        db.psEngagement.count({
+          where: { orgId, deletedAt: null, createdAt: { gte: previousSince, lt: since } },
+        }),
+        db.psProposal.count({
+          where: { orgId, createdAt: { gte: previousSince, lt: since } },
+        }),
+        db.psRfp.count({ where: { orgId, createdAt: { gte: previousSince, lt: since } } }),
       ]),
       db.psEngagement.groupBy({
         by: ["aiDealHealth"],
@@ -135,7 +149,18 @@ export const GET = withDashboardAuth(async ({ orgId, userId }, req) => {
       stageBuckets.set(row.stage, entry);
     }
     const [templates, demos, knowledge] = assetCounts;
-    const [newEngagements, newProposals, newRfps] = newThisPeriod;
+    const [newEngagements, newProposals, newRfps, prevEngagements, prevProposals, prevRfps] =
+      newThisPeriod;
+
+    /**
+     * Percentage change against the previous window.
+     *
+     * Returns null rather than a number when the previous window was zero: "up
+     * from nothing" has no meaningful percentage, and rendering ∞ or a bare 100%
+     * misleads. The UI shows "new" in that case.
+     */
+    const deltaPct = (current: number, previous: number): number | null =>
+      previous === 0 ? null : Math.round(((current - previous) / previous) * 100);
 
     const closed = wonCount + lostCount;
 
@@ -173,6 +198,28 @@ export const GET = withDashboardAuth(async ({ orgId, userId }, req) => {
       ),
       assets: { templates, demos, knowledge },
       thisPeriod: { days, newEngagements, newProposals, newRfps },
+      /**
+       * Flow metrics with a real previous-window comparison. Deliberately does not
+       * include open count, pipeline value or win rate — those are snapshots, and
+       * comparing them needs history this app does not keep.
+       */
+      trends: {
+        newEngagements: {
+          current: newEngagements,
+          previous: prevEngagements,
+          deltaPct: deltaPct(newEngagements, prevEngagements),
+        },
+        newProposals: {
+          current: newProposals,
+          previous: prevProposals,
+          deltaPct: deltaPct(newProposals, prevProposals),
+        },
+        newRfps: {
+          current: newRfps,
+          previous: prevRfps,
+          deltaPct: deltaPct(newRfps, prevRfps),
+        },
+      },
       upcomingCloses: upcomingCloses.map((e) => ({
         ...e,
         estRevenue: e.estRevenue?.toString() ?? null,
