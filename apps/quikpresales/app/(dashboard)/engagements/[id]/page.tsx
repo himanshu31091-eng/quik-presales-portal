@@ -32,6 +32,7 @@ import {
   type StageStep,
   type DealAssessment,
 } from "@/components/deal-workspace";
+import { DealCopilot } from "@/components/deal-copilot";
 
 interface EngagementDetail {
   id: string;
@@ -202,6 +203,7 @@ export default function EngagementDetailPage() {
                   competitors={data.competitors}
                   assessment={workspace?.assessment ?? null}
                 />
+                <DealCopilot engagementId={id} />
               </div>
             </div>
           </div>
