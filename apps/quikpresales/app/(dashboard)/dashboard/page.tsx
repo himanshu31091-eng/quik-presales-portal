@@ -5,9 +5,23 @@ import { Select } from "@quikit/ui";
 import { useApiQuery, formatDate } from "@/lib/api-client";
 import { useDisplayCurrency } from "@/lib/hooks/useCurrency";
 import {
+  KpiCard,
+  KPI_ICONS,
+  QuickActions,
+  type Trend,
+  type QuickAction,
+} from "@/components/dashboard-widgets";
+import {
+  Briefcase,
+  FileSearch,
+  FileText,
+  Calculator,
+  LayoutTemplate,
+  Library,
+} from "lucide-react";
+import {
   PageHeader,
   Panel,
-  StatTile,
   StatusPill,
   Loading,
   ErrorNote,
@@ -33,6 +47,11 @@ interface DashboardData {
   dealHealth: Record<string, number>;
   assets: { templates: number; demos: number; knowledge: number };
   thisPeriod: { days: number; newEngagements: number; newProposals: number; newRfps: number };
+  trends?: {
+    newEngagements: Trend;
+    newProposals: Trend;
+    newRfps: Trend;
+  };
   upcomingCloses: {
     id: string;
     title: string;
@@ -49,6 +68,20 @@ interface DashboardData {
     engagement: { id: string; title: string };
   }[];
 }
+
+/**
+ * Quick actions. Every tile points at a page that exists — a tile leading nowhere
+ * trains people to distrust the whole panel, so "Solution Architecture" and
+ * "Meetings" from the design are absent until those modules do.
+ */
+const QUICK_ACTIONS: QuickAction[] = [
+  { label: "New Opportunity", href: "/engagements", icon: Briefcase },
+  { label: "RFP Manager", href: "/rfps", icon: FileSearch },
+  { label: "Create Proposal", href: "/proposals", icon: FileText },
+  { label: "Build Estimation", href: "/estimates", icon: Calculator },
+  { label: "Templates", href: "/templates", icon: LayoutTemplate },
+  { label: "Knowledge Base", href: "/knowledge", icon: Library },
+];
 
 export default function DashboardPage() {
   const {
@@ -99,20 +132,55 @@ export default function DashboardPage() {
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatTile label="Active Engagements" value={kpis.activeEngagements} href="/engagements" />
-        <StatTile label="Pipeline Value" value={formatTotal(kpis.pipelineByCurrency)} />
-        <StatTile label="Open RFPs" value={kpis.openRfps} href="/rfps" />
-        <StatTile
-          label="Win Rate"
-          value={kpis.winRatePct === null ? "—" : `${kpis.winRatePct}%`}
-          hint={kpis.winRatePct === null ? "No closed deals yet" : undefined}
-          href="/winloss"
+        <KpiCard
+          label="Open Opportunities"
+          value={kpis.activeEngagements}
+          icon={KPI_ICONS.opportunities}
+          tone="blue"
+          href="/engagements"
+          trend={data.trends?.newEngagements}
+          periodLabel={`new in ${thisPeriod.days}d`}
         />
-        <StatTile
+        <KpiCard
+          label="Pipeline Value"
+          value={formatTotal(kpis.pipelineByCurrency)}
+          icon={KPI_ICONS.pipeline}
+          tone="rose"
+          // No trend: pipeline value is a snapshot, and comparing it needs
+          // historical snapshots this app does not keep.
+          hint="Across all open stages"
+        />
+        <KpiCard
+          label="Open RFPs"
+          value={kpis.openRfps}
+          icon={KPI_ICONS.requests}
+          tone="violet"
+          href="/rfps"
+          trend={data.trends?.newRfps}
+          periodLabel={`new in ${thisPeriod.days}d`}
+        />
+        <KpiCard
+          label="Proposal Win Rate"
+          value={kpis.winRatePct === null ? "—" : `${kpis.winRatePct}%`}
+          icon={KPI_ICONS.winRate}
+          tone="green"
+          href="/winloss"
+          hint={kpis.winRatePct === null ? "No closed deals yet" : "Won vs lost, all time"}
+        />
+        <KpiCard
           label="Reusable Assets"
           value={kpis.reusableAssets}
+          icon={KPI_ICONS.assets}
+          tone="amber"
           hint={`Target 100 · ${data.assets.templates} templates, ${data.assets.demos} demos, ${data.assets.knowledge} knowledge`}
         />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <QuickActions actions={QUICK_ACTIONS} />
+        </div>
+        <div />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

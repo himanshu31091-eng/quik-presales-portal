@@ -108,6 +108,10 @@ export function Sidebar() {
     <AppSidebar
       brand={{ name: "QuikPreSales", subtitle: "Pre-Sales Portal", icon: Presentation }}
       nav={toNavItems(NAV, disabled, hasNav)}
+      // Dark is the variant leadership's design shows, and CLAUDE.md specifies
+      // bg-accent-800 for sidebars — the shared component already supports it, we
+      // were simply on its light default.
+      theme="dark"
       storageKey="quikpresales:sidebar"
     />
   );
