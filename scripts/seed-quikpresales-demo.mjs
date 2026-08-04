@@ -440,14 +440,20 @@ try {
     "lead", "qualification", "discovery", "solution-design",
     "demo", "poc", "proposal", "negotiation",
   ];
-  const haveStageHistory = await db.psTimelineEvent.count({
-    where: { orgId, type: "stage-advanced" },
-  });
-  if (haveStageHistory === 0) {
+  {
     let written = 0;
     for (const e of ENGAGEMENTS) {
       const id = engagementIds[e.title];
       if (!id) continue;
+
+      // Guard PER ENGAGEMENT, not org-wide. An org-wide check skipped every deal
+      // as soon as any one of them had a stage-advanced event — and the original
+      // seeder gave exactly one engagement a single event, so nothing was written.
+      const already = await db.psTimelineEvent.count({
+        where: { orgId, engagementId: id, type: "stage-advanced" },
+      });
+      if (already > 1) continue;
+
       // For won/lost/rejected deals, walk the whole path; otherwise stop at the
       // current stage.
       const endIndex = STAGE_PATH.includes(e.stage)
@@ -471,9 +477,7 @@ try {
         written += 1;
       }
     }
-    log(`${written} stage-advanced events`);
-  } else {
-    log("stage history already present");
+    log(`${written} stage-advanced events written`);
   }
 
   // ── Rich deal-health payloads ────────────────────────────────────────────
