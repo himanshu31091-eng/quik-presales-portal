@@ -23,6 +23,16 @@ import {
 } from "@/components/ui-kit";
 import { ACTIVE_STAGES, STAGE_LABEL, STAGE_ORDER, type Stage } from "@/lib/pipeline";
 import { useMyPermissions } from "@/lib/hooks/useMyPermissions";
+import { useDisplayCurrency } from "@/lib/hooks/useCurrency";
+import {
+  StageTracker,
+  DealHeaderStat,
+  DealHealthPanel,
+  AiSnapshotPanel,
+  CompetitionPanel,
+  type StageStep,
+  type DealAssessment,
+} from "@/components/deal-workspace";
 
 interface EngagementDetail {
   id: string;
@@ -57,14 +67,38 @@ interface TimelineEvent {
   createdAt: string;
 }
 
+interface WorkspaceView {
+  tracker: StageStep[];
+  assessment: DealAssessment | null;
+  documents: {
+    id: string;
+    filename: string;
+    category: string;
+    status: string;
+    blobUrl: string;
+    version: number;
+    updatedAt: string;
+  }[];
+  recentActivity: { id: string; type: string; summary: string; createdAt: string }[];
+}
+
 export default function EngagementDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { can } = useMyPermissions();
+  const { formatConverted } = useDisplayCurrency();
   const [tab, setTab] = useState("overview");
 
   const { data, isLoading, error } = useApiQuery<EngagementDetail>(
     ["engagement", id],
     `/api/engagements/${id}`,
+  );
+
+  // The workspace view: dated stage tracker, latest AI assessment, documents and
+  // activity. Separate query so the page still renders if this one is slow — the
+  // tracker and AI panels are additive, not load-bearing.
+  const { data: workspace } = useApiQuery<WorkspaceView>(
+    ["engagement", id, "workspace"],
+    `/api/engagements/${id}/workspace`,
   );
 
   if (isLoading) return <Loading />;
@@ -94,6 +128,50 @@ export default function EngagementDetailPage() {
         }
       />
 
+      {/* Header KPI strip: the figures a reviewer wants before reading anything. */}
+      <Panel className="mb-5">
+        <div className="flex flex-wrap items-start gap-x-10 gap-y-4">
+          <DealHeaderStat
+            label="Expected revenue"
+            value={formatConverted(data.estRevenue, data.currency)}
+          />
+          <DealHeaderStat label="Win probability" value={`${data.probability}%`} hint="From stage" />
+          <DealHeaderStat
+            label="AI win probability"
+            value={
+              workspace?.assessment?.winProbabilityPct !== undefined &&
+              workspace?.assessment?.winProbabilityPct !== null
+                ? `${workspace.assessment.winProbabilityPct}%`
+                : "—"
+            }
+            hint={workspace?.assessment ? "From assessment" : "Not assessed"}
+          />
+          <DealHeaderStat
+            label="Deal health"
+            value={data.aiDealHealth ? <StatusPill status={data.aiDealHealth} /> : "Not scored"}
+            tone={
+              data.aiDealHealth === "green"
+                ? "good"
+                : data.aiDealHealth === "amber"
+                  ? "warn"
+                  : data.aiDealHealth === "red"
+                    ? "bad"
+                    : "default"
+            }
+          />
+          <DealHeaderStat label="Target close" value={formatDate(data.expectedClose)} />
+        </div>
+      </Panel>
+
+      {/* Dated stage tracker — the spine of the deal workspace. Dates come from
+          the timeline, so a stage the deal jumped shows as skipped rather than
+          claiming work that never happened. */}
+      {workspace?.tracker?.length ? (
+        <Panel className="mb-5">
+          <StageTracker steps={workspace.tracker} />
+        </Panel>
+      ) : null}
+
       <Tabs
         items={[
           { key: "overview", label: "Overview" },
@@ -110,7 +188,25 @@ export default function EngagementDetailPage() {
       />
 
       <div className="mt-5">
-        {tab === "overview" ? <Overview engagement={data} /> : null}
+        {tab === "overview" ? (
+          <div className="space-y-5">
+            {/* Two columns: the deal facts and AI read on the left, health and
+                competition on the right — the reviewer's scan order. */}
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+              <div className="space-y-5 lg:col-span-2">
+                <Overview engagement={data} />
+                <AiSnapshotPanel assessment={workspace?.assessment ?? null} />
+              </div>
+              <div className="space-y-5">
+                <DealHealthPanel assessment={workspace?.assessment ?? null} />
+                <CompetitionPanel
+                  competitors={data.competitors}
+                  assessment={workspace?.assessment ?? null}
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
         {tab === "timeline" ? <Timeline engagementId={id} /> : null}
         {tab === "documents" ? <Documents engagementId={id} /> : null}
         {tab === "rfps" ? <RelatedRfps engagementId={id} /> : null}

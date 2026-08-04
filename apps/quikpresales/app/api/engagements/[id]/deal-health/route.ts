@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { withOrgAuthForModule } from "@/lib/api/withOrgAuth";
 import { requirePermission } from "@/lib/api/rbac";
 import { okSerialized, notFound, fail } from "@/lib/api/responses";
@@ -138,6 +139,14 @@ export const POST = withEngagementAuth<{ id: string }>(
           riskScore: assessment.riskScore,
           rationale: assessment.rationale,
           risks: assessment.risks,
+          winProbabilityPct: assessment.winProbabilityPct,
+          // Cast through unknown: Prisma's InputJsonValue does not accept a typed
+          // interface array, only a structurally-open JSON shape. These are plain
+          // data objects, so the round trip is safe.
+          dimensions: assessment.dimensions as unknown as Prisma.InputJsonValue,
+          biggestRisk: (assessment.biggestRisk ?? null) as unknown as Prisma.InputJsonValue,
+          recommendedNextStep: (assessment.recommendedNextStep ??
+            null) as unknown as Prisma.InputJsonValue,
           nextActions: assessment.nextActions,
           isStub: assessment.isStub,
         },
@@ -162,6 +171,10 @@ export const POST = withEngagementAuth<{ id: string }>(
       health: assessment.health,
       riskScore: assessment.riskScore,
       rationale: assessment.rationale,
+      winProbabilityPct: assessment.winProbabilityPct,
+      dimensions: assessment.dimensions,
+      biggestRisk: assessment.biggestRisk,
+      recommendedNextStep: assessment.recommendedNextStep,
       risks: assessment.risks,
       nextActions: assessment.nextActions,
       assessedAt: assessedAt.toISOString(),
