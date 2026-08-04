@@ -8,7 +8,6 @@ import {
   api,
   useApiQuery,
   useApiMutation,
-  formatMoney,
   formatDate,
   type Paginated,
 } from "@/lib/api-client";
@@ -218,8 +217,11 @@ export default function EngagementDetailPage() {
 }
 
 function Overview({ engagement }: { engagement: EngagementDetail }) {
+  const { formatConverted } = useDisplayCurrency();
   const rows: [string, React.ReactNode][] = [
-    ["Estimated value", formatMoney(engagement.estRevenue, engagement.currency ?? "INR")],
+    // Display currency, matching the header strip. Showing the native amount here
+    // and a converted one above put two different numbers under the same label.
+    ["Estimated value", formatConverted(engagement.estRevenue, engagement.currency)],
     ["Probability", `${engagement.probability}%`],
     ["Expected close", formatDate(engagement.expectedClose)],
     ["Competitors", engagement.competitors.join(", ") || "—"],
