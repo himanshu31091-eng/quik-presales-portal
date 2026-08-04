@@ -5,6 +5,7 @@ import {
   DEFAULT_ROLE_NAME,
   NAV_KEYS,
   NAV_TO_ENTITY,
+  PERMISSION_TREE,
   SEEDED_ROLE_NAMES,
   allPermissionPairs,
   isNavKey,
@@ -79,18 +80,28 @@ describe("navigation resolution", () => {
 });
 
 describe("permission tree", () => {
-  it("expands to the full pair set for the admin role", () => {
+  it("expands to exactly the pairs the tree declares, with no duplicates", () => {
     const pairs = allPermissionPairs();
-    // 9 CRUD-ish resources + proposals' extra `approve` + dashboard view-only
-    // + settings view/manage. Pinned so adding a resource is a deliberate act.
-    expect(pairs).toHaveLength(36);
-    expect(new Set(pairs.map((p) => `${p.resource}:${p.action}`)).size).toBe(36);
+
+    // Derived from the tree rather than pinned to a literal. The old hardcoded 36
+    // broke the moment `approve` was added to engagements, which told us nothing
+    // useful — the property worth protecting is that expansion matches the tree
+    // and produces no duplicates, not that the total never changes.
+    const expected = PERMISSION_TREE.flatMap((module) =>
+      module.leaves.flatMap((leaf) => leaf.actions.map((a) => `${leaf.resource}:${a}`)),
+    );
+
+    expect(pairs).toHaveLength(expected.length);
+    expect(new Set(pairs.map((p) => `${p.resource}:${p.action}`))).toEqual(new Set(expected));
+    expect(new Set(expected).size).toBe(expected.length);
   });
 
   it("rejects unknown resources and actions", () => {
     expect(isValidPair("engagements", "view")).toBe(true);
-    expect(isValidPair("engagements", "approve")).toBe(false); // only proposals
+    // `approve` on engagements is the pre-sales lead accept/reject gate.
+    expect(isValidPair("engagements", "approve")).toBe(true);
     expect(isValidPair("nonsense", "view")).toBe(false);
     expect(isValidPair("dashboard", "delete")).toBe(false); // view-only
+    expect(isValidPair("knowledge", "approve")).toBe(false); // no approval flow
   });
 });

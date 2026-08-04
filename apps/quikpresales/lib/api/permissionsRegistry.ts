@@ -55,7 +55,9 @@ export const PERMISSION_TREE: PermissionModule[] = [
     key: "pipeline",
     label: "Pipeline",
     leaves: [
-      { resource: "engagements", label: "Engagements", actions: CRUD },
+      // `approve` is the pre-sales accept/reject gate on an incoming lead.
+      // Sales can create engagements but must not decide them.
+      { resource: "engagements", label: "Engagements", actions: [...CRUD, "approve"] },
       { resource: "rfp", label: "RFP Manager", actions: CRUD },
       // `approve` moves a proposal into the approved state; `update` covers
       // every other status move and all content edits.
@@ -228,7 +230,7 @@ export const DEFAULT_ROLES: DefaultRoleDef[] = [
     description: "Builds proposals, runs the RFP flow, preps demos.",
     isDefault: false,
     grants: {
-      engagements: ["view", "create", "update"],
+      engagements: ["view", "create", "update", "approve"],
       rfp: ["view", "create", "update"],
       proposals: ["view", "create", "update"],
       templates: ["view"],
@@ -245,7 +247,7 @@ export const DEFAULT_ROLES: DefaultRoleDef[] = [
     description: "Reviews and approves solution design, architecture and estimates.",
     isDefault: false,
     grants: {
-      engagements: ["view", "update"],
+      engagements: ["view", "update", "approve"],
       rfp: ["view", "update"],
       proposals: ["view", "update", "approve"],
       templates: ["view"],
