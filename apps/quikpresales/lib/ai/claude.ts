@@ -54,7 +54,13 @@ export type UseCase =
   | "estimate.suggest_lines"
   | "meeting.summarize"
   | "engagement.deal_health"
-  | "lead.evaluate_requirements";
+  | "lead.evaluate_requirements"
+  | "copilot.summarise_deal"
+  | "copilot.followup_email"
+  | "copilot.win_strategy"
+  | "copilot.competitor_analysis"
+  | "copilot.executive_summary"
+  | "copilot.ask";
 
 export interface ClaudeCallOptions {
   useCase: UseCase;
