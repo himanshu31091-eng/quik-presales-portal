@@ -113,7 +113,7 @@ export default function EngagementDetailPage() {
         title={data.title}
         subtitle={[data.industry, data.territory].filter(Boolean).join(" · ") || undefined}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <StatusPill
               status={closed ? data.closedStatus : data.stage}
               label={STAGE_LABEL[data.stage as Stage] ?? data.stage}
