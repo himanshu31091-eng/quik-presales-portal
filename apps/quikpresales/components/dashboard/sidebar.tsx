@@ -105,14 +105,22 @@ export function Sidebar() {
   const { hasNav } = useMyPermissions();
 
   return (
-    <AppSidebar
-      brand={{ name: "QuikPreSales", subtitle: "Pre-Sales Portal", icon: Presentation }}
-      nav={toNavItems(NAV, disabled, hasNav)}
-      // Dark is the variant leadership's design shows, and CLAUDE.md specifies
-      // bg-accent-800 for sidebars — the shared component already supports it, we
-      // were simply on its light default.
-      theme="dark"
-      storageKey="quikpresales:sidebar"
-    />
+    <div
+      className="[&>aside]:!bg-accent-100
+        [&_nav_.bg-accent-50]:!bg-accent-600 [&_nav_.text-accent-700]:!text-white"
+    >
+      <AppSidebar
+        brand={{ name: "QuikPreSales", subtitle: "Pre-Sales Portal", icon: Presentation }}
+        nav={toNavItems(NAV, disabled, hasNav)}
+        // Keep the light palette's readable controls while the wrapper supplies
+        // the app's light-blue, tenant-theme-aware sidebar surface. The nav-scoped
+        // overrides bump the active item to a solid accent-600 pill — on its own,
+        // the palette's default bg-accent-50 active highlight is nearly invisible
+        // against this bg-accent-100 sidebar. Scoped to `nav` so it doesn't also
+        // repaint the brand icon chip above, which reuses the same accent-50/700 pair.
+        theme="light"
+        storageKey="quikpresales:sidebar"
+      />
+    </div>
   );
 }
