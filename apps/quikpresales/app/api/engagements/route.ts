@@ -19,6 +19,8 @@ const listQuery = z.object({
   closedStatus: z.enum(["open", "won", "lost"]).optional(),
   presalesOwnerId: z.string().optional(),
   search: z.string().max(120).optional(),
+  /** Either ownership field matching the caller — "my pipeline" view. */
+  mine: z.enum(["true", "false"]).optional(),
 });
 
 const createSchema = z.object({
@@ -65,7 +67,7 @@ export const GET = withEngagementAuth(async ({ orgId, userId }, req) => {
 
   const parsed = listQuery.safeParse(Object.fromEntries(req.nextUrl.searchParams));
   if (!parsed.success) return validationError(parsed.error);
-  const { stage, closedStatus, presalesOwnerId, search } = parsed.data;
+  const { stage, closedStatus, presalesOwnerId, search, mine } = parsed.data;
 
   const pagination = parsePaginationParams(req.nextUrl.searchParams);
   const where: Prisma.PsEngagementWhereInput = {
@@ -75,6 +77,9 @@ export const GET = withEngagementAuth(async ({ orgId, userId }, req) => {
     ...(closedStatus && { closedStatus }),
     ...(presalesOwnerId && { presalesOwnerId }),
     ...(search && { title: { contains: search, mode: "insensitive" as const } }),
+    // Either ownership role counts as "mine" — a solution architect who
+    // inherited a deal from sales still needs to find it here.
+    ...(mine === "true" && { OR: [{ salesOwnerId: userId }, { presalesOwnerId: userId }] }),
   };
 
   const [items, total] = await Promise.all([
@@ -87,7 +92,34 @@ export const GET = withEngagementAuth(async ({ orgId, userId }, req) => {
     db.psEngagement.count({ where }),
   ]);
 
-  return okSerialized(buildPaginationResponse(items, total, pagination));
+  // salesOwnerId/presalesOwnerId are soft references (no Prisma relation, same
+  // as crmOpportunityId) — resolve display names with one extra lookup rather
+  // than shipping bare ids the UI can't render anything useful from.
+  const ownerIds = [
+    ...new Set(items.flatMap((e) => [e.salesOwnerId, e.presalesOwnerId]).filter((v): v is string => !!v)),
+  ];
+  const owners = ownerIds.length
+    ? await db.user.findMany({
+        where: { id: { in: ownerIds } },
+        select: { id: true, firstName: true, lastName: true },
+      })
+    : [];
+  const ownerName = new Map(owners.map((o) => [o.id, `${o.firstName} ${o.lastName}`.trim()]));
+
+  // `daysInStage` is a stored counter nothing increments as real time passes
+  // (it's only ever set at creation/transition time, see lib/pipeline.ts) —
+  // it reads 0 for a deal untouched in weeks just as often as for one from
+  // this morning. `idleDays`, computed live from `updatedAt` (which Prisma
+  // maintains on every write), is what "stuck" actually needs.
+  const now = Date.now();
+  const withNames = items.map((e) => ({
+    ...e,
+    idleDays: Math.floor((now - e.updatedAt.getTime()) / 86_400_000),
+    salesOwnerName: e.salesOwnerId ? (ownerName.get(e.salesOwnerId) ?? null) : null,
+    presalesOwnerName: e.presalesOwnerId ? (ownerName.get(e.presalesOwnerId) ?? null) : null,
+  }));
+
+  return okSerialized(buildPaginationResponse(withNames, total, pagination));
 });
 
 /** POST /api/engagements — create. */

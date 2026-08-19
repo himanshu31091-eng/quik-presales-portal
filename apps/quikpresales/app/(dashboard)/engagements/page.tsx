@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Button, Input, Select, Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from "@quikit/ui";
+import { Button, Input, Select, Checkbox, Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from "@quikit/ui";
 import {
   api,
   useApiQuery,
@@ -37,8 +37,14 @@ interface EngagementRow {
   probability: number;
   expectedClose: string | null;
   aiDealHealth: string | null;
+  idleDays: number;
+  salesOwnerName: string | null;
+  presalesOwnerName: string | null;
   updatedAt: string;
 }
+
+/** Open this long in one stage without moving and it's flagged as stuck. */
+const STUCK_THRESHOLD_DAYS = 14;
 
 export default function EngagementsPage() {
   const { can } = useMyPermissions();
@@ -47,14 +53,16 @@ export default function EngagementsPage() {
   const { formatConverted, displayCurrency, setDisplayCurrency, currencies } = useDisplayCurrency();
   const [stage, setStage] = useState("");
   const [search, setSearch] = useState("");
+  const [mineOnly, setMineOnly] = useState(false);
   const [creating, setCreating] = useState(false);
 
   const params = new URLSearchParams({ limit: "50" });
   if (stage) params.set("stage", stage);
   if (search) params.set("search", search);
+  if (mineOnly) params.set("mine", "true");
 
   const { data, isLoading, error } = useApiQuery<Paginated<EngagementRow>>(
-    ["engagements", stage, search],
+    ["engagements", stage, search, mineOnly],
     `/api/engagements?${params}`,
   );
 
@@ -94,6 +102,13 @@ export default function EngagementsPage() {
           options={currencies.map((c) => ({ value: c.code, label: `View in ${c.code}` }))}
           className="max-w-[160px]"
         />
+        <div className="flex items-center">
+          <Checkbox
+            label="My items only"
+            checked={mineOnly}
+            onChange={(e) => setMineOnly(e.target.checked)}
+          />
+        </div>
       </div>
 
       {error ? <ErrorNote error={error} /> : null}
@@ -101,37 +116,56 @@ export default function EngagementsPage() {
         <Loading />
       ) : (
         <TableShell
-          headers={["Title", "Industry", "Stage", "Value", "Prob.", "Close", "Health", "Updated"]}
+          headers={["Title", "Owner", "Industry", "Stage", "Value", "Prob.", "Close", "Health", "Updated"]}
         >
           {(data?.data.length ?? 0) === 0 ? (
-            <EmptyRow colSpan={8} message="No engagements match these filters." />
+            <EmptyRow
+              colSpan={9}
+              message={mineOnly ? "No engagements assigned to you match these filters." : "No engagements match these filters."}
+            />
           ) : (
-            data?.data.map((e) => (
-              <tr key={e.id} className="hover:bg-gray-50">
-                <td className="px-4 py-2.5">
-                  <Link
-                    href={`/engagements/${e.id}`}
-                    className="font-medium text-gray-900 hover:underline"
-                  >
-                    {e.title}
-                  </Link>
-                </td>
-                <td className="px-4 py-2.5 text-gray-600">{e.industry ?? "—"}</td>
-                <td className="px-4 py-2.5">
-                  <StatusPill
-                    status={e.closedStatus === "open" ? e.stage : e.closedStatus}
-                    label={STAGE_LABEL[e.stage as Stage] ?? e.stage}
-                  />
-                </td>
-                <td className="px-4 py-2.5 text-gray-900">{formatConverted(e.estRevenue, e.currency)}</td>
-                <td className="px-4 py-2.5 text-gray-600">{e.probability}%</td>
-                <td className="px-4 py-2.5 text-gray-600">{formatDate(e.expectedClose)}</td>
-                <td className="px-4 py-2.5">
-                  {e.aiDealHealth ? <StatusPill status={e.aiDealHealth} /> : "—"}
-                </td>
-                <td className="px-4 py-2.5 text-xs text-gray-500">{formatDate(e.updatedAt)}</td>
-              </tr>
-            ))
+            data?.data.map((e) => {
+              const stuck = e.closedStatus === "open" && e.idleDays > STUCK_THRESHOLD_DAYS;
+              return (
+                <tr key={e.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-2.5">
+                    <Link
+                      href={`/engagements/${e.id}`}
+                      className="font-medium text-gray-900 hover:underline"
+                    >
+                      {e.title}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-2.5 text-gray-600">
+                    {e.presalesOwnerName ?? e.salesOwnerName ?? "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-gray-600">{e.industry ?? "—"}</td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <StatusPill
+                        status={e.closedStatus === "open" ? e.stage : e.closedStatus}
+                        label={STAGE_LABEL[e.stage as Stage] ?? e.stage}
+                      />
+                      {stuck ? (
+                        <span
+                          title={`No update in ${e.idleDays} days`}
+                          className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700"
+                        >
+                          Stuck {e.idleDays}d
+                        </span>
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5 text-gray-900">{formatConverted(e.estRevenue, e.currency)}</td>
+                  <td className="px-4 py-2.5 text-gray-600">{e.probability}%</td>
+                  <td className="px-4 py-2.5 text-gray-600">{formatDate(e.expectedClose)}</td>
+                  <td className="px-4 py-2.5">
+                    {e.aiDealHealth ? <StatusPill status={e.aiDealHealth} /> : "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-xs text-gray-500">{formatDate(e.updatedAt)}</td>
+                </tr>
+              );
+            })
           )}
         </TableShell>
       )}

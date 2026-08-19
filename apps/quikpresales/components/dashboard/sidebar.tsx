@@ -13,6 +13,7 @@ import {
   BookOpen,
   Trophy,
   CalendarRange,
+  Users,
   Settings,
   Presentation,
   type LucideIcon,
@@ -65,6 +66,7 @@ const NAV: Entry[] = [
   },
   { label: "Win / Loss", href: "/winloss", icon: Trophy, moduleKey: "winloss", resource: "winloss" },
   { label: "Weekly Dashboard", href: "/weekly", icon: CalendarRange, moduleKey: "weekly", resource: "dashboard" },
+  { label: "Team Overview", href: "/team", icon: Users, moduleKey: "team", resource: "dashboard" },
   { label: "Settings", href: "/settings/roles", icon: Settings, moduleKey: "settings", resource: "settings" },
 ];
 

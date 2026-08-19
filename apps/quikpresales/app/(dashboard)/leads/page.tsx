@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Input, Select, Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter, Textarea } from "@quikit/ui";
+import { Button, Input, Select, Checkbox, Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter, Textarea } from "@quikit/ui";
 import { api, useApiMutation, useApiQuery, formatDate, formatMoney, type Paginated } from "@/lib/api-client";
 import {
   PageHeader,
@@ -24,6 +24,7 @@ interface LeadRow {
   industry: string | null;
   territory: string | null;
   salesOwnerId: string | null;
+  salesOwnerName: string | null;
   estRevenue: string | null;
   currency: string | null;
   createdAt: string;
@@ -47,10 +48,14 @@ function ReadinessPill({ lead }: { lead: LeadRow }) {
 export default function LeadsPage() {
   const { can } = useMyPermissions();
   const [creating, setCreating] = useState(false);
+  const [mineOnly, setMineOnly] = useState(false);
+
+  const params = new URLSearchParams({ limit: "50" });
+  if (mineOnly) params.set("mine", "true");
 
   const { data, isLoading, error } = useApiQuery<Paginated<LeadRow>>(
-    ["leads"],
-    "/api/leads?limit=50",
+    ["leads", mineOnly],
+    `/api/leads?${params}`,
   );
 
   return (
@@ -65,13 +70,24 @@ export default function LeadsPage() {
         }
       />
 
+      <div className="mb-4 flex items-center">
+        <Checkbox
+          label="My submissions only"
+          checked={mineOnly}
+          onChange={(e) => setMineOnly(e.target.checked)}
+        />
+      </div>
+
       {error ? <ErrorNote error={error} /> : null}
       {isLoading ? (
         <Loading />
       ) : (
-        <TableShell headers={["Title", "Industry", "Value", "Readiness", "Submitted", ""]}>
+        <TableShell headers={["Title", "Submitted by", "Industry", "Value", "Readiness", "Submitted", ""]}>
           {(data?.data.length ?? 0) === 0 ? (
-            <EmptyRow colSpan={6} message="No leads waiting on a decision." />
+            <EmptyRow
+              colSpan={7}
+              message={mineOnly ? "You haven't submitted any leads waiting on a decision." : "No leads waiting on a decision."}
+            />
           ) : (
             data?.data.map((lead) => <LeadRowView key={lead.id} lead={lead} />)
           )}
@@ -88,6 +104,7 @@ function LeadRowView({ lead }: { lead: LeadRow }) {
   return (
     <tr className="cursor-pointer hover:bg-gray-50" onClick={() => router.push(`/leads/${lead.id}`)}>
       <td className="px-4 py-2.5 font-medium text-gray-900">{lead.title}</td>
+      <td className="px-4 py-2.5 text-gray-600">{lead.salesOwnerName ?? "—"}</td>
       <td className="px-4 py-2.5 text-gray-600">{lead.industry ?? "—"}</td>
       <td className="px-4 py-2.5 text-gray-900">{formatMoney(lead.estRevenue, lead.currency ?? undefined)}</td>
       <td className="px-4 py-2.5">

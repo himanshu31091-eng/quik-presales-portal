@@ -142,6 +142,7 @@ export const NAV_TO_ENTITY: Record<string, Resource> = {
   "library.knowledge": "knowledge",
   winloss: "winloss",
   settings: "settings",
+  team: "dashboard",
 };
 
 /** Pure-navigation keys — no backing resource, granted via RoleNavigation. */
