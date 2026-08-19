@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { Trash2 } from "lucide-react";
 import { Button, Input, Select, Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from "@quikit/ui";
 import { api, useApiQuery, useApiMutation, formatDate, type Paginated } from "@/lib/api-client";
 import {
@@ -33,6 +35,7 @@ export default function TemplatesPage() {
   const [kind, setKind] = useState("");
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
 
   const params = new URLSearchParams({ limit: "100" });
   if (kind) params.set("kind", kind);
@@ -78,14 +81,16 @@ export default function TemplatesPage() {
       {isLoading ? (
         <Loading />
       ) : (
-        <TableShell headers={["Name", "Kind", "Industry", "Version", "Active", "Updated"]}>
+        <TableShell headers={["Name", "Kind", "Industry", "Version", "Active", "Updated", ""]}>
           {(data?.data.length ?? 0) === 0 ? (
-            <EmptyRow colSpan={6} message="No templates yet." />
+            <EmptyRow colSpan={7} message="No templates yet." />
           ) : (
             data?.data.map((t) => (
               <tr key={t.id} className="hover:bg-gray-50">
                 <td className="px-4 py-2.5">
-                  <p className="font-medium text-gray-900">{t.name}</p>
+                  <Link href={`/templates/${t.id}`} className="font-medium text-gray-900 hover:underline">
+                    {t.name}
+                  </Link>
                   {t.description ? (
                     <p className="text-xs text-gray-500">{t.description}</p>
                   ) : null}
@@ -99,6 +104,18 @@ export default function TemplatesPage() {
                   <StatusPill status={t.isActive ? "ready" : "outdated"} label={t.isActive ? "active" : "inactive"} />
                 </td>
                 <td className="px-4 py-2.5 text-xs text-gray-500">{formatDate(t.updatedAt)}</td>
+                <td className="px-4 py-2.5 text-right">
+                  {can("templates", "delete") ? (
+                    <button
+                      type="button"
+                      title="Delete"
+                      onClick={() => setDeleting({ id: t.id, name: t.name })}
+                      className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
+                </td>
               </tr>
             ))
           )}
@@ -106,6 +123,13 @@ export default function TemplatesPage() {
       )}
 
       {creating ? <CreateTemplateModal onClose={() => setCreating(false)} /> : null}
+      {deleting ? (
+        <DeleteTemplateModal
+          id={deleting.id}
+          name={deleting.name}
+          onClose={() => setDeleting(null)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -170,6 +194,52 @@ function CreateTemplateModal({ onClose }: { onClose: () => void }) {
             }
           >
             {create.isPending ? "Creating…" : "Create"}
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+}
+
+function DeleteTemplateModal({
+  id,
+  name,
+  onClose,
+}: {
+  id: string;
+  name: string;
+  onClose: () => void;
+}) {
+  const del = useApiMutation(() => api.del(`/api/templates/${id}`), [["templates"]]);
+
+  return (
+    <Modal open onOpenChange={onClose}>
+      <ModalContent>
+        <ModalHeader>
+          <ModalTitle>Delete this template?</ModalTitle>
+        </ModalHeader>
+        <ModalBody>
+          <p className="text-sm text-gray-600">
+            <span className="font-medium text-gray-900">&ldquo;{name}&rdquo;</span> will no longer
+            appear in the Templates list or be selectable when creating a proposal. Existing
+            proposals already created from it keep their own copy of the content.
+          </p>
+          {del.error ? (
+            <div className="mt-3">
+              <ErrorNote error={del.error} />
+            </div>
+          ) : null}
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={onClose} disabled={del.isPending}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            disabled={del.isPending}
+            onClick={() => del.mutate(undefined, { onSuccess: onClose })}
+          >
+            {del.isPending ? "Deleting…" : "Delete"}
           </Button>
         </ModalFooter>
       </ModalContent>
