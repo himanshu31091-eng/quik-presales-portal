@@ -2,8 +2,19 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { Button, Select, Tabs } from "@quikit/ui";
+import { useParams, useRouter } from "next/navigation";
+import {
+  Button,
+  Input,
+  Select,
+  Tabs,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalTitle,
+  ModalBody,
+  ModalFooter,
+} from "@quikit/ui";
 import {
   api,
   useApiQuery,
@@ -841,6 +852,9 @@ function RelatedRfps({ engagementId }: { engagementId: string }) {
 }
 
 function RelatedProposals({ engagementId }: { engagementId: string }) {
+  const { can } = useMyPermissions();
+  const [creating, setCreating] = useState(false);
+
   const { data, isLoading } = useApiQuery<
     Paginated<{ id: string; title: string; status: string; updatedAt: string; _count: { versions: number } }>
   >(["engagement", engagementId, "proposals"], `/api/proposals?engagementId=${engagementId}`);
@@ -848,25 +862,125 @@ function RelatedProposals({ engagementId }: { engagementId: string }) {
   if (isLoading) return <Loading />;
 
   return (
-    <TableShell headers={["Title", "Status", "Versions", "Updated"]}>
-      {(data?.data.length ?? 0) === 0 ? (
-        <EmptyRow colSpan={4} message="No proposals for this engagement." />
-      ) : (
-        data?.data.map((p) => (
-          <tr key={p.id} className="hover:bg-gray-50">
-            <td className="px-4 py-2.5">
-              <Link href={`/proposals/${p.id}`} className="text-gray-900 hover:underline">
-                {p.title}
-              </Link>
-            </td>
-            <td className="px-4 py-2.5">
-              <StatusPill status={p.status} />
-            </td>
-            <td className="px-4 py-2.5 text-gray-600">{p._count.versions}</td>
-            <td className="px-4 py-2.5 text-xs text-gray-500">{formatDate(p.updatedAt)}</td>
-          </tr>
-        ))
-      )}
-    </TableShell>
+    <div>
+      {can("proposals", "create") ? (
+        <div className="mb-3 flex justify-end">
+          <Button size="sm" onClick={() => setCreating(true)}>
+            New Proposal
+          </Button>
+        </div>
+      ) : null}
+      <TableShell headers={["Title", "Status", "Versions", "Updated"]}>
+        {(data?.data.length ?? 0) === 0 ? (
+          <EmptyRow colSpan={4} message="No proposals for this engagement." />
+        ) : (
+          data?.data.map((p) => (
+            <tr key={p.id} className="hover:bg-gray-50">
+              <td className="px-4 py-2.5">
+                <Link href={`/proposals/${p.id}`} className="text-gray-900 hover:underline">
+                  {p.title}
+                </Link>
+              </td>
+              <td className="px-4 py-2.5">
+                <StatusPill status={p.status} />
+              </td>
+              <td className="px-4 py-2.5 text-gray-600">{p._count.versions}</td>
+              <td className="px-4 py-2.5 text-xs text-gray-500">{formatDate(p.updatedAt)}</td>
+            </tr>
+          ))
+        )}
+      </TableShell>
+      {creating ? (
+        <NewProposalModal engagementId={engagementId} onClose={() => setCreating(false)} />
+      ) : null}
+    </div>
+  );
+}
+
+function NewProposalModal({
+  engagementId,
+  onClose,
+}: {
+  engagementId: string;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [title, setTitle] = useState("");
+  const [rfpId, setRfpId] = useState("");
+  const [templateId, setTemplateId] = useState("");
+
+  const rfps = useApiQuery<Paginated<{ id: string; title: string }>>(
+    ["engagement", engagementId, "rfps"],
+    `/api/rfps?engagementId=${engagementId}`,
+  );
+  // Only proposal-kind templates actually seed sections — anything else falls
+  // back to the default skeleton anyway, so there's no point offering it here.
+  const templates = useApiQuery<Paginated<{ id: string; name: string }>>(
+    ["templates", "proposal", "active"],
+    `/api/templates?kind=proposal&isActive=true&limit=100`,
+  );
+
+  const create = useApiMutation<{ id: string }, Record<string, unknown>>(
+    (body) => api.post("/api/proposals", body),
+    [["engagement", engagementId, "proposals"], ["proposals"], ["dashboard"]],
+  );
+
+  return (
+    <Modal open onOpenChange={onClose}>
+      <ModalContent>
+        <ModalHeader>
+          <ModalTitle>New Proposal</ModalTitle>
+        </ModalHeader>
+        <ModalBody className="space-y-4">
+          <Input
+            label="Title"
+            required
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Acme Corp — D365 Migration Proposal"
+          />
+          <Select
+            label="Base on RFP (optional)"
+            value={rfpId}
+            onChange={(e) => setRfpId(e.target.value)}
+            options={[
+              { value: "", label: "None" },
+              ...(rfps.data?.data.map((r) => ({ value: r.id, label: r.title })) ?? []),
+            ]}
+          />
+          <Select
+            label="Start from template (optional)"
+            value={templateId}
+            onChange={(e) => setTemplateId(e.target.value)}
+            options={[
+              { value: "", label: "Default skeleton" },
+              ...(templates.data?.data.map((t) => ({ value: t.id, label: t.name })) ?? []),
+            ]}
+          />
+          {create.error ? <ErrorNote error={create.error} /> : null}
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            disabled={title.trim().length < 2 || create.isPending}
+            onClick={() =>
+              create.mutate(
+                {
+                  engagementId,
+                  title,
+                  ...(rfpId ? { rfpId } : {}),
+                  ...(templateId ? { templateId } : {}),
+                },
+                { onSuccess: (proposal) => router.push(`/proposals/${proposal.id}`) },
+              )
+            }
+          >
+            {create.isPending ? "Creating…" : "Create"}
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 }
