@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Paperclip } from "lucide-react";
 import { Button, Input, Select, Textarea, Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter } from "@quikit/ui";
 import { api, useApiQuery, useApiMutation, formatDate, type Paginated } from "@/lib/api-client";
 import { PageHeader, Panel, Loading, ErrorNote, ComboField } from "@/components/ui-kit";
@@ -16,9 +16,32 @@ interface KnowledgeRow {
   industry: string | null;
   technology: string | null;
   tags: string[];
+  blobUrl: string | null;
   updatedAt: string;
   snippet?: string | null;
 }
+
+/** Blob keys are `${orgId}/knowledge/${timestamp}-${sanitizedFilename}`. */
+function fileNameFromBlobUrl(url: string): string {
+  const last = url.split("/").pop() ?? url;
+  return last.replace(/^\d+-/, "");
+}
+
+async function uploadKnowledgeFile(file: File): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch("/api/knowledge/upload", { method: "POST", body: form });
+  const json = (await res.json().catch(() => null)) as
+    | { success: boolean; data?: { blobUrl: string }; error?: string }
+    | null;
+  if (!res.ok || !json?.success || !json.data) {
+    throw new Error(json?.error ?? `Upload failed (${res.status})`);
+  }
+  return json.data.blobUrl;
+}
+
+const FILE_INPUT_CLASS =
+  "block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200";
 
 export default function KnowledgePage() {
   const { can } = useMyPermissions();
@@ -127,6 +150,17 @@ export default function KnowledgePage() {
               <p className="mt-1 text-xs text-gray-500">
                 {[a.industry, a.technology].filter(Boolean).join(" · ") || "General"}
               </p>
+              {a.blobUrl ? (
+                <a
+                  href={a.blobUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1.5 inline-flex items-center gap-1 text-xs text-accent-600 hover:underline"
+                >
+                  <Paperclip className="h-3 w-3" />
+                  {fileNameFromBlobUrl(a.blobUrl)}
+                </a>
+              ) : null}
               {a.snippet ? <p className="mt-2 text-sm text-gray-600">{a.snippet}</p> : null}
               {a.tags.length > 0 ? (
                 <div className="mt-2 flex flex-wrap gap-1">
@@ -163,12 +197,46 @@ function CreateAssetModal({ onClose }: { onClose: () => void }) {
   const [industry, setIndustry] = useState("");
   const [technology, setTechnology] = useState("");
   const [tags, setTags] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const { industries, technologies } = useVocabulary();
 
   const create = useApiMutation(
     (payload: Record<string, unknown>) => api.post("/api/knowledge", payload),
     [["knowledge"], ["dashboard"], VOCABULARY_KEY],
   );
+
+  async function handleCreate() {
+    setUploadError(null);
+    let blobUrl: string | undefined;
+    if (file) {
+      setUploading(true);
+      try {
+        blobUrl = await uploadKnowledgeFile(file);
+      } catch (e) {
+        setUploadError(e instanceof Error ? e.message : "Upload failed");
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
+    create.mutate(
+      {
+        kind,
+        title,
+        ...(body ? { body } : {}),
+        ...(industry ? { industry } : {}),
+        ...(technology ? { technology } : {}),
+        ...(blobUrl ? { blobUrl } : {}),
+        tags: tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+      },
+      { onSuccess: onClose },
+    );
+  }
 
   return (
     <Modal open onOpenChange={onClose}>
@@ -218,6 +286,20 @@ function CreateAssetModal({ onClose }: { onClose: () => void }) {
             onChange={(e) => setTags(e.target.value)}
             placeholder="comma, separated"
           />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Attachment (optional)
+            </label>
+            <input
+              type="file"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              className={FILE_INPUT_CLASS}
+            />
+            <p className="mt-1 text-xs text-gray-400">
+              PDF, Word, Excel, PowerPoint, text, image or zip — up to 4.5 MB.
+            </p>
+            {uploadError ? <p className="mt-1 text-xs text-red-600">{uploadError}</p> : null}
+          </div>
           {create.error ? <ErrorNote error={create.error} /> : null}
         </ModalBody>
         <ModalFooter>
@@ -225,25 +307,10 @@ function CreateAssetModal({ onClose }: { onClose: () => void }) {
             Cancel
           </Button>
           <Button
-            disabled={title.trim().length < 2 || create.isPending}
-            onClick={() =>
-              create.mutate(
-                {
-                  kind,
-                  title,
-                  ...(body ? { body } : {}),
-                  ...(industry ? { industry } : {}),
-                  ...(technology ? { technology } : {}),
-                  tags: tags
-                    .split(",")
-                    .map((t) => t.trim())
-                    .filter(Boolean),
-                },
-                { onSuccess: onClose },
-              )
-            }
+            disabled={title.trim().length < 2 || create.isPending || uploading}
+            onClick={handleCreate}
           >
-            {create.isPending ? "Creating…" : "Create"}
+            {uploading ? "Uploading…" : create.isPending ? "Creating…" : "Create"}
           </Button>
         </ModalFooter>
       </ModalContent>
@@ -259,6 +326,7 @@ interface KnowledgeDetail {
   industry: string | null;
   technology: string | null;
   tags: string[];
+  blobUrl: string | null;
 }
 
 function EditAssetModal({ id, onClose }: { id: string; onClose: () => void }) {
@@ -312,12 +380,49 @@ function EditAssetForm({ asset, onClose }: { asset: KnowledgeDetail; onClose: ()
   const [industry, setIndustry] = useState(asset.industry ?? "");
   const [technology, setTechnology] = useState(asset.technology ?? "");
   const [tags, setTags] = useState(asset.tags.join(", "));
+  const [file, setFile] = useState<File | null>(null);
+  const [removeAttachment, setRemoveAttachment] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const { industries, technologies } = useVocabulary();
 
   const update = useApiMutation(
     (payload: Record<string, unknown>) => api.patch(`/api/knowledge/${asset.id}`, payload),
     [["knowledge"], ["knowledge", asset.id], ["dashboard"], VOCABULARY_KEY],
   );
+
+  async function handleSave() {
+    setUploadError(null);
+    let blobUrl: string | null | undefined;
+    if (file) {
+      setUploading(true);
+      try {
+        blobUrl = await uploadKnowledgeFile(file);
+      } catch (e) {
+        setUploadError(e instanceof Error ? e.message : "Upload failed");
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    } else if (removeAttachment) {
+      blobUrl = null;
+    }
+    update.mutate(
+      {
+        kind,
+        title,
+        body: body || null,
+        industry: industry || null,
+        technology: technology || null,
+        ...(blobUrl !== undefined ? { blobUrl } : {}),
+        tags: tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+      },
+      { onSuccess: onClose },
+    );
+  }
 
   return (
     <Modal open onOpenChange={onClose}>
@@ -367,6 +472,56 @@ function EditAssetForm({ asset, onClose }: { asset: KnowledgeDetail; onClose: ()
             onChange={(e) => setTags(e.target.value)}
             placeholder="comma, separated"
           />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Attachment (optional)
+            </label>
+            {asset.blobUrl && !removeAttachment && !file ? (
+              <div className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2 text-sm">
+                <a
+                  href={asset.blobUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="truncate text-accent-600 hover:underline"
+                >
+                  {fileNameFromBlobUrl(asset.blobUrl)}
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setRemoveAttachment(true)}
+                  className="ml-2 shrink-0 text-xs text-red-600 hover:underline"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <input
+                type="file"
+                onChange={(e) => {
+                  setFile(e.target.files?.[0] ?? null);
+                  setRemoveAttachment(false);
+                }}
+                className={FILE_INPUT_CLASS}
+              />
+            )}
+            {removeAttachment ? (
+              <p className="mt-1 text-xs text-gray-400">
+                Attachment will be removed on save.{" "}
+                <button
+                  type="button"
+                  onClick={() => setRemoveAttachment(false)}
+                  className="text-accent-600 hover:underline"
+                >
+                  Undo
+                </button>
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-gray-400">
+                PDF, Word, Excel, PowerPoint, text, image or zip — up to 4.5 MB.
+              </p>
+            )}
+            {uploadError ? <p className="mt-1 text-xs text-red-600">{uploadError}</p> : null}
+          </div>
           {update.error ? <ErrorNote error={update.error} /> : null}
         </ModalBody>
         <ModalFooter>
@@ -374,25 +529,10 @@ function EditAssetForm({ asset, onClose }: { asset: KnowledgeDetail; onClose: ()
             Cancel
           </Button>
           <Button
-            disabled={title.trim().length < 2 || update.isPending}
-            onClick={() =>
-              update.mutate(
-                {
-                  kind,
-                  title,
-                  body: body || null,
-                  industry: industry || null,
-                  technology: technology || null,
-                  tags: tags
-                    .split(",")
-                    .map((t) => t.trim())
-                    .filter(Boolean),
-                },
-                { onSuccess: onClose },
-              )
-            }
+            disabled={title.trim().length < 2 || update.isPending || uploading}
+            onClick={handleSave}
           >
-            {update.isPending ? "Saving…" : "Save changes"}
+            {uploading ? "Uploading…" : update.isPending ? "Saving…" : "Save changes"}
           </Button>
         </ModalFooter>
       </ModalContent>

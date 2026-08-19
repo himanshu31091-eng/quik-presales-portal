@@ -76,3 +76,17 @@ export async function uploadDocument(
   const blob = await put(key, file, { access: "public", addRandomSuffix: false });
   return { url: blob.url, key };
 }
+
+/** Blob key for a knowledge asset attachment — not engagement-scoped. */
+export function buildKnowledgeBlobKey(orgId: string, filename: string): string {
+  return `${orgId}/knowledge/${Date.now()}-${sanitizeFilename(filename)}`;
+}
+
+export async function uploadKnowledgeAsset(
+  orgId: string,
+  file: File,
+): Promise<{ url: string; key: string }> {
+  const key = buildKnowledgeBlobKey(orgId, file.name);
+  const blob = await put(key, file, { access: "public", addRandomSuffix: false });
+  return { url: blob.url, key };
+}
