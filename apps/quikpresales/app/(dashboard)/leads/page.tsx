@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button, Input, Select, Checkbox, Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, ModalFooter, Textarea } from "@quikit/ui";
-import { api, useApiMutation, useApiQuery, formatDate, formatMoney, type Paginated } from "@/lib/api-client";
+import { api, useApiMutation, useApiQuery, downloadFile, formatDate, formatMoney, type Paginated } from "@/lib/api-client";
 import {
   PageHeader,
   TableShell,
@@ -45,18 +46,51 @@ function ReadinessPill({ lead }: { lead: LeadRow }) {
   return <StatusPill status="gap" label={`${open} blocker${open === 1 ? "" : "s"} open`} />;
 }
 
+const LEAD_CSV_TEMPLATE =
+  "title,requirement,industry,territory,budgetHint,timelineHint,techStack,crmOpportunityId,estRevenue,currency\n" +
+  '"Acme Corp — ERP rollout","Customer wants to replace their legacy ERP across 3 plants.","Manufacturing","APAC","~$200k","Q2 2027","Dynamics365;AzureAI","CRM-1234","20000000","INR"\n';
+
+function downloadLeadCsvTemplate() {
+  const blob = new Blob([LEAD_CSV_TEMPLATE], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "leads-import-template.csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function LeadsPage() {
   const { can } = useMyPermissions();
+  const { industries } = useVocabulary();
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [mineOnly, setMineOnly] = useState(false);
+  const [industry, setIndustry] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   const params = new URLSearchParams({ limit: "50" });
   if (mineOnly) params.set("mine", "true");
+  if (industry) params.set("industry", industry);
 
   const { data, isLoading, error } = useApiQuery<Paginated<LeadRow>>(
-    ["leads", mineOnly],
+    ["leads", mineOnly, industry],
     `/api/leads?${params}`,
   );
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await downloadFile("/api/leads/export", {
+        ...(mineOnly ? { mine: true } : {}),
+        ...(industry ? { industry } : {}),
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div>
@@ -64,13 +98,29 @@ export default function LeadsPage() {
         title="Leads"
         subtitle="New opportunities awaiting a pre-sales decision"
         actions={
-          can("engagements", "create") ? (
-            <Button onClick={() => setCreating(true)}>New Lead</Button>
-          ) : null
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" onClick={handleExport} disabled={exporting}>
+              {exporting ? "Exporting…" : "Export"}
+            </Button>
+            {can("engagements", "create") ? (
+              <>
+                <Button variant="secondary" onClick={() => setImporting(true)}>
+                  Bulk Import
+                </Button>
+                <Button onClick={() => setCreating(true)}>New Lead</Button>
+              </>
+            ) : null}
+          </div>
         }
       />
 
-      <div className="mb-4 flex items-center">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <Select
+          value={industry}
+          onChange={(e) => setIndustry(e.target.value)}
+          options={[{ value: "", label: "All industries" }, ...industries.map((i) => ({ value: i, label: i }))]}
+          className="max-w-[180px]"
+        />
         <Checkbox
           label="My submissions only"
           checked={mineOnly}
@@ -95,7 +145,120 @@ export default function LeadsPage() {
       )}
 
       {creating ? <NewLeadModal onClose={() => setCreating(false)} /> : null}
+      {importing ? <BulkImportModal onClose={() => setImporting(false)} /> : null}
     </div>
+  );
+}
+
+interface BulkImportResult {
+  totalRows: number;
+  created: number;
+  errors: { row: number; title: string; message: string }[];
+}
+
+function BulkImportModal({ onClose }: { onClose: () => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [result, setResult] = useState<BulkImportResult | null>(null);
+  const qc = useQueryClient();
+
+  async function handleUpload() {
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/leads/bulk", { method: "POST", body: form });
+      const json = (await res.json().catch(() => null)) as
+        | { success: boolean; data?: BulkImportResult; error?: string }
+        | null;
+      if (!res.ok || !json?.success || !json.data) {
+        throw new Error(json?.error ?? `Import failed (${res.status})`);
+      }
+      setResult(json.data);
+      void qc.invalidateQueries({ queryKey: ["leads"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "Import failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <Modal open onOpenChange={onClose}>
+      <ModalContent>
+        <ModalHeader>
+          <ModalTitle>Bulk Import Leads</ModalTitle>
+        </ModalHeader>
+        <ModalBody className="space-y-4">
+          {!result ? (
+            <>
+              <p className="text-sm text-gray-600">
+                Upload a CSV of leads. These skip AI requirement screening and land directly in
+                the queue as ready for review — use the one-by-one form instead if you want the
+                AI gap analysis on a lead.
+              </p>
+              <button
+                type="button"
+                onClick={downloadLeadCsvTemplate}
+                className="text-sm text-accent-600 hover:underline"
+              >
+                Download CSV template
+              </button>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">CSV file</label>
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
+                />
+                <p className="mt-1 text-xs text-gray-400">Up to 500 rows, 2 MB.</p>
+              </div>
+              {uploadError ? <ErrorNote error={new Error(uploadError)} /> : null}
+            </>
+          ) : (
+            <div>
+              <p className="text-sm text-gray-900">
+                Imported <span className="font-medium">{result.created}</span> of{" "}
+                {result.totalRows} row(s).
+              </p>
+              {result.errors.length > 0 ? (
+                <div className="mt-3">
+                  <p className="mb-1 text-sm font-medium text-red-700">
+                    {result.errors.length} row(s) skipped:
+                  </p>
+                  <ul className="max-h-48 space-y-1 overflow-y-auto text-xs text-red-600">
+                    {result.errors.map((e) => (
+                      <li key={e.row}>
+                        Row {e.row} ({e.title || "untitled"}): {e.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          {!result ? (
+            <>
+              <Button variant="secondary" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button disabled={!file || uploading} onClick={handleUpload}>
+                {uploading ? "Importing…" : "Import"}
+              </Button>
+            </>
+          ) : (
+            <Button onClick={onClose}>Done</Button>
+          )}
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 }
 

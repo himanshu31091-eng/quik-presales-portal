@@ -371,6 +371,12 @@ function DealHealthAssessor({ engagementId, assessed }: { engagementId: string; 
   );
 }
 
+interface ChecklistItem {
+  key: string;
+  label: string;
+  met: boolean;
+}
+
 function StageAdvancer({ engagementId, currentStage }: { engagementId: string; currentStage: string }) {
   const [target, setTarget] = useState("");
 
@@ -378,6 +384,15 @@ function StageAdvancer({ engagementId, currentStage }: { engagementId: string; c
     (toStage: string) => api.post(`/api/engagements/${engagementId}/transition`, { toStage }),
     [["engagement", engagementId], ["engagements"], ["dashboard"]],
   );
+
+  // Live preview of the stage-entry gate — lets the user see what's missing
+  // before attempting the move, rather than discovering it from a failed POST.
+  const checklist = useApiQuery<{ items: ChecklistItem[]; allMet: boolean }>(
+    ["engagement", engagementId, "checklist", target],
+    `/api/engagements/${engagementId}/transition?toStage=${target}`,
+    !!target,
+  );
+  const blocked = !!target && checklist.data ? !checklist.data.allMet : false;
 
   // Only forward stages plus the two terminal outcomes are valid targets — the
   // server enforces this too, but offering impossible options is bad UI.
@@ -393,22 +408,36 @@ function StageAdvancer({ engagementId, currentStage }: { engagementId: string; c
   ];
 
   return (
-    <div className="flex items-center gap-2">
-      <Select
-        value={target}
-        onChange={(e) => setTarget(e.target.value)}
-        options={options}
-        className="min-w-[160px]"
-      />
-      <Button
-        size="sm"
-        disabled={!target || transition.isPending}
-        onClick={() => transition.mutate(target, { onSuccess: () => setTarget("") })}
-      >
-        {transition.isPending ? "Moving…" : "Apply"}
-      </Button>
-      {transition.error ? (
-        <span className="text-xs text-red-600">{(transition.error as Error).message}</span>
+    <div>
+      <div className="flex items-center gap-2">
+        <Select
+          value={target}
+          onChange={(e) => setTarget(e.target.value)}
+          options={options}
+          className="min-w-[160px]"
+        />
+        <Button
+          size="sm"
+          disabled={!target || transition.isPending || checklist.isLoading || blocked}
+          onClick={() => transition.mutate(target, { onSuccess: () => setTarget("") })}
+        >
+          {transition.isPending ? "Moving…" : "Apply"}
+        </Button>
+        {transition.error ? (
+          <span className="text-xs text-red-600">{(transition.error as Error).message}</span>
+        ) : null}
+      </div>
+      {target && checklist.data && checklist.data.items.length > 0 ? (
+        <ul className="mt-2 space-y-1 text-xs">
+          {checklist.data.items.map((item) => (
+            <li
+              key={item.key}
+              className={item.met ? "text-green-700" : "text-red-600"}
+            >
+              {item.met ? "✓" : "✗"} {item.label}
+            </li>
+          ))}
+        </ul>
       ) : null}
     </div>
   );

@@ -7,7 +7,7 @@ import {
   api,
   useApiQuery,
   useApiMutation,
-
+  downloadFile,
   formatDate,
   type Paginated,
 } from "@/lib/api-client";
@@ -51,20 +51,44 @@ export default function EngagementsPage() {
   // Values are stored in the currency each deal was sold in and converted for
   // display only, so the list reads in one currency without rewriting any record.
   const { formatConverted, displayCurrency, setDisplayCurrency, currencies } = useDisplayCurrency();
+  const { industries } = useVocabulary();
   const [stage, setStage] = useState("");
   const [search, setSearch] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [closeFrom, setCloseFrom] = useState("");
+  const [closeTo, setCloseTo] = useState("");
   const [mineOnly, setMineOnly] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const params = new URLSearchParams({ limit: "50" });
   if (stage) params.set("stage", stage);
   if (search) params.set("search", search);
+  if (industry) params.set("industry", industry);
+  if (closeFrom) params.set("closeFrom", new Date(closeFrom).toISOString());
+  if (closeTo) params.set("closeTo", new Date(closeTo).toISOString());
   if (mineOnly) params.set("mine", "true");
 
   const { data, isLoading, error } = useApiQuery<Paginated<EngagementRow>>(
-    ["engagements", stage, search, mineOnly],
+    ["engagements", stage, search, industry, closeFrom, closeTo, mineOnly],
     `/api/engagements?${params}`,
   );
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await downloadFile("/api/engagements/export", {
+        ...(stage ? { stage } : {}),
+        ...(search ? { search } : {}),
+        ...(industry ? { industry } : {}),
+        ...(closeFrom ? { closeFrom: new Date(closeFrom).toISOString() } : {}),
+        ...(closeTo ? { closeTo: new Date(closeTo).toISOString() } : {}),
+        ...(mineOnly ? { mine: true } : {}),
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div>
@@ -72,13 +96,18 @@ export default function EngagementsPage() {
         title="Engagements"
         subtitle="Every opportunity pre-sales is supporting"
         actions={
-          can("engagements", "create") ? (
-            <Button onClick={() => setCreating(true)}>New Engagement</Button>
-          ) : null
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" onClick={handleExport} disabled={exporting}>
+              {exporting ? "Exporting…" : "Export"}
+            </Button>
+            {can("engagements", "create") ? (
+              <Button onClick={() => setCreating(true)}>New Engagement</Button>
+            ) : null}
+          </div>
         }
       />
 
-      <div className="mb-4 flex flex-wrap gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <Input
           placeholder="Search by title…"
           value={search}
@@ -96,6 +125,18 @@ export default function EngagementsPage() {
           ]}
           className="max-w-[180px]"
         />
+        <Select
+          value={industry}
+          onChange={(e) => setIndustry(e.target.value)}
+          options={[{ value: "", label: "All industries" }, ...industries.map((i) => ({ value: i, label: i }))]}
+          className="max-w-[180px]"
+        />
+        <div className="flex items-center gap-1.5 text-sm text-gray-500">
+          <span>Close</span>
+          <Input type="date" value={closeFrom} onChange={(e) => setCloseFrom(e.target.value)} className="w-[150px]" />
+          <span>–</span>
+          <Input type="date" value={closeTo} onChange={(e) => setCloseTo(e.target.value)} className="w-[150px]" />
+        </div>
         <Select
           value={displayCurrency}
           onChange={(e) => setDisplayCurrency(e.target.value)}

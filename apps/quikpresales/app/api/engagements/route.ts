@@ -19,6 +19,10 @@ const listQuery = z.object({
   closedStatus: z.enum(["open", "won", "lost"]).optional(),
   presalesOwnerId: z.string().optional(),
   search: z.string().max(120).optional(),
+  industry: z.string().max(80).optional(),
+  /** Expected-close range, inclusive — either end optional. */
+  closeFrom: z.string().datetime().optional(),
+  closeTo: z.string().datetime().optional(),
   /** Either ownership field matching the caller — "my pipeline" view. */
   mine: z.enum(["true", "false"]).optional(),
 });
@@ -67,7 +71,7 @@ export const GET = withEngagementAuth(async ({ orgId, userId }, req) => {
 
   const parsed = listQuery.safeParse(Object.fromEntries(req.nextUrl.searchParams));
   if (!parsed.success) return validationError(parsed.error);
-  const { stage, closedStatus, presalesOwnerId, search, mine } = parsed.data;
+  const { stage, closedStatus, presalesOwnerId, search, industry, closeFrom, closeTo, mine } = parsed.data;
 
   const pagination = parsePaginationParams(req.nextUrl.searchParams);
   const where: Prisma.PsEngagementWhereInput = {
@@ -77,6 +81,13 @@ export const GET = withEngagementAuth(async ({ orgId, userId }, req) => {
     ...(closedStatus && { closedStatus }),
     ...(presalesOwnerId && { presalesOwnerId }),
     ...(search && { title: { contains: search, mode: "insensitive" as const } }),
+    ...(industry && { industry }),
+    ...((closeFrom || closeTo) && {
+      expectedClose: {
+        ...(closeFrom && { gte: new Date(closeFrom) }),
+        ...(closeTo && { lte: new Date(closeTo) }),
+      },
+    }),
     // Either ownership role counts as "mine" — a solution architect who
     // inherited a deal from sales still needs to find it here.
     ...(mine === "true" && { OR: [{ salesOwnerId: userId }, { presalesOwnerId: userId }] }),

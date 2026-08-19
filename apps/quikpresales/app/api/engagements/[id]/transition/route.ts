@@ -5,6 +5,7 @@ import { okSerialized, notFound, fail, validationError } from "@/lib/api/respons
 import { writeAudit, writeTimeline } from "@/lib/api/audit";
 import { db } from "@/lib/db";
 import { canTransition, closedStatusFor, isStage, STAGE_LABEL, STAGE_PROBABILITY, type Stage } from "@/lib/pipeline";
+import { evaluateChecklist } from "@/lib/pipeline-checklist";
 
 const withEngagementAuth = withOrgAuthForModule("engagements");
 
@@ -12,6 +13,30 @@ const transitionSchema = z.object({
   toStage: z.string().refine(isStage, "Unknown target stage"),
   justification: z.string().max(1000).optional(),
 });
+
+/**
+ * GET /api/engagements/[id]/transition?toStage=X — preview the stage-entry
+ * checklist without moving anything, so the UI can show what's missing
+ * before the user even attempts the move.
+ */
+export const GET = withEngagementAuth<{ id: string }>(
+  async ({ orgId, userId }, req, { params }) => {
+    const denied = await requirePermission(userId, orgId, "engagements", "view");
+    if (denied) return denied;
+
+    const toStageRaw = req.nextUrl.searchParams.get("toStage");
+    if (!toStageRaw || !isStage(toStageRaw)) return fail(400, "toStage query param is required");
+
+    const engagement = await db.psEngagement.findFirst({
+      where: { id: params.id, orgId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!engagement) return notFound("Engagement");
+
+    const result = await evaluateChecklist(orgId, engagement.id, toStageRaw);
+    return okSerialized(result);
+  },
+);
 
 /**
  * POST /api/engagements/[id]/transition
@@ -49,6 +74,15 @@ export const POST = withEngagementAuth<{ id: string }>(
 
     const check = canTransition(engagement.stage, toStage);
     if (!check.ok) return fail(check.status ?? 400, check.reason ?? "Invalid transition");
+
+    const checklist = await evaluateChecklist(orgId, engagement.id, toStage);
+    if (!checklist.allMet) {
+      const unmet = checklist.items.filter((i) => !i.met).map((i) => i.label);
+      return fail(
+        409,
+        `Cannot move to ${STAGE_LABEL[toStage]} yet — ${unmet.join("; ")}`,
+      );
+    }
 
     const fromStage = engagement.stage;
 

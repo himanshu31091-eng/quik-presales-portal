@@ -192,6 +192,7 @@ export const POST = withLeadAuth(async ({ orgId, userId }, req) => {
 const listQuery = z.object({
   /** Leads this caller submitted — "my submissions" view. */
   mine: z.enum(["true", "false"]).optional(),
+  industry: z.string().max(80).optional(),
 });
 
 export const GET = withLeadAuth(async ({ orgId, userId }, req) => {
@@ -207,6 +208,7 @@ export const GET = withLeadAuth(async ({ orgId, userId }, req) => {
     deletedAt: null,
     stage: "lead",
     ...(parsedQuery.data.mine === "true" && { salesOwnerId: userId }),
+    ...(parsedQuery.data.industry && { industry: parsedQuery.data.industry }),
   };
 
   const [rows, total] = await Promise.all([
