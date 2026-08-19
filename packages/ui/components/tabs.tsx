@@ -17,7 +17,7 @@ export interface TabsProps {
  */
 export function Tabs({ value, onChange, items, className }: TabsProps) {
   return (
-    <div className={cn("flex border-b border-gray-200", className)}>
+    <div className={cn("flex overflow-x-auto border-b border-gray-200", className)}>
       {items.map((t) => {
         const active = t.key === value;
         return (

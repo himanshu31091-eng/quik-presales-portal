@@ -72,6 +72,7 @@ interface DashboardData {
     id: string;
     type: string;
     summary: string;
+    actorName: string | null;
     createdAt: string;
     engagement: { id: string; title: string };
   }[];
@@ -294,7 +295,11 @@ export default function DashboardPage() {
             <ul className="divide-y divide-gray-100">
               {data.recentActivity.map((a) => (
                 <li key={a.id} className="py-2">
-                  <p className="text-sm text-gray-900">{a.summary}</p>
+                  <p className="text-sm text-gray-900">
+                    {a.actorName ? <span className="font-medium">{a.actorName}</span> : null}
+                    {a.actorName ? " — " : ""}
+                    {a.summary}
+                  </p>
                   <p className="mt-0.5 text-xs text-gray-400">
                     <Link href={`/engagements/${a.engagement.id}`} className="hover:underline">
                       {a.engagement.title}

@@ -42,6 +42,14 @@ export default function RfpsPage() {
       <PageHeader
         title="RFP Manager"
         subtitle="Upload an RFP against an engagement, then extract its requirements into a compliance matrix"
+        actions={
+          <a
+            href="/api/rfps/sample-template"
+            className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Download sample RFP template
+          </a>
+        }
       />
 
       <div className="mb-4 flex flex-wrap gap-3">

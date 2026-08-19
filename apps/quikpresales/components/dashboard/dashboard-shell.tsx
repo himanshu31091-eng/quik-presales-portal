@@ -37,7 +37,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {mobileOpen ? (
-          <div className="fixed inset-0 z-[200] flex md:hidden">
+          // items-start (rather than the flex default of stretch) lets the drawer
+          // hug its nav content's height instead of filling the full viewport —
+          // scoped to this app's mobile drawer only, not the shared AppSidebar.
+          <div className="fixed inset-0 z-[200] flex items-start md:hidden">
             <button
               type="button"
               aria-label="Close menu"

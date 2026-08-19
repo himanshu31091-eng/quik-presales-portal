@@ -63,6 +63,7 @@ export const GET = withKnowledgeAuth(async ({ orgId, userId }, req) => {
       industry: true,
       technology: true,
       tags: true,
+      blobUrl: true,
       updatedAt: true,
     },
     orderBy: { updatedAt: "desc" },

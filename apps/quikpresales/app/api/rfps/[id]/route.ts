@@ -34,6 +34,7 @@ export const GET = withRfpAuth<{ id: string }>(async ({ orgId, userId }, _req, {
       title: true,
       status: true,
       extractError: true,
+      extractedText: true,
       dueDate: true,
       submittedAt: true,
       createdAt: true,

@@ -189,15 +189,31 @@ export const POST = withLeadAuth(async ({ orgId, userId }, req) => {
  * rather than stored, so it cannot drift out of step with the answers themselves:
  * a lead is ready when no blocking gap is still unanswered.
  */
+const listQuery = z.object({
+  /** Leads this caller submitted — "my submissions" view. */
+  mine: z.enum(["true", "false"]).optional(),
+  industry: z.string().max(80).optional(),
+});
+
 export const GET = withLeadAuth(async ({ orgId, userId }, req) => {
   const denied = await requirePermission(userId, orgId, "engagements", "view");
   if (denied) return denied;
 
+  const parsedQuery = listQuery.safeParse(Object.fromEntries(req.nextUrl.searchParams));
+  if (!parsedQuery.success) return validationError(parsedQuery.error);
+
   const params = parsePaginationParams(req.nextUrl.searchParams);
+  const where = {
+    orgId,
+    deletedAt: null,
+    stage: "lead",
+    ...(parsedQuery.data.mine === "true" && { salesOwnerId: userId }),
+    ...(parsedQuery.data.industry && { industry: parsedQuery.data.industry }),
+  };
 
   const [rows, total] = await Promise.all([
     db.psEngagement.findMany({
-      where: { orgId, deletedAt: null, stage: "lead" },
+      where,
       select: {
         id: true,
         title: true,
@@ -219,8 +235,19 @@ export const GET = withLeadAuth(async ({ orgId, userId }, req) => {
       orderBy: { createdAt: "desc" },
       ...paginationToSkipTake(params),
     }),
-    db.psEngagement.count({ where: { orgId, deletedAt: null, stage: "lead" } }),
+    db.psEngagement.count({ where }),
   ]);
+
+  // salesOwnerId is a soft reference (no Prisma relation) — resolve names in
+  // one extra lookup so the queue can show who submitted each lead.
+  const ownerIds = [...new Set(rows.map((r) => r.salesOwnerId).filter((v): v is string => !!v))];
+  const owners = ownerIds.length
+    ? await db.user.findMany({
+        where: { id: { in: ownerIds } },
+        select: { id: true, firstName: true, lastName: true },
+      })
+    : [];
+  const ownerName = new Map(owners.map((o) => [o.id, `${o.firstName} ${o.lastName}`.trim()]));
 
   const data = rows.map((row) => {
     const requirements = row.rfps.flatMap((r) => r.requirements);
@@ -233,6 +260,7 @@ export const GET = withLeadAuth(async ({ orgId, userId }, req) => {
       industry: row.industry,
       territory: row.territory,
       salesOwnerId: row.salesOwnerId,
+      salesOwnerName: row.salesOwnerId ? (ownerName.get(row.salesOwnerId) ?? null) : null,
       estRevenue: row.estRevenue?.toString() ?? null,
       currency: row.currency,
       createdAt: row.createdAt.toISOString(),

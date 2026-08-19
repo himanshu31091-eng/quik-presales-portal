@@ -2,6 +2,7 @@
 
 import {
   LayoutDashboard,
+  Inbox,
   Briefcase,
   FileSearch,
   FileText,
@@ -12,6 +13,7 @@ import {
   BookOpen,
   Trophy,
   CalendarRange,
+  Users,
   Settings,
   Presentation,
   type LucideIcon,
@@ -47,6 +49,7 @@ interface Entry {
 
 const NAV: Entry[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, moduleKey: "dashboard", resource: "dashboard" },
+  { label: "Leads", href: "/leads", icon: Inbox, moduleKey: "leads", resource: "engagements" },
   { label: "Engagements", href: "/engagements", icon: Briefcase, moduleKey: "engagements", resource: "engagements" },
   { label: "RFP Manager", href: "/rfps", icon: FileSearch, moduleKey: "rfp", resource: "rfp" },
   { label: "Proposals", href: "/proposals", icon: FileText, moduleKey: "proposals", resource: "proposals" },
@@ -63,6 +66,7 @@ const NAV: Entry[] = [
   },
   { label: "Win / Loss", href: "/winloss", icon: Trophy, moduleKey: "winloss", resource: "winloss" },
   { label: "Weekly Dashboard", href: "/weekly", icon: CalendarRange, moduleKey: "weekly", resource: "dashboard" },
+  { label: "Team Overview", href: "/team", icon: Users, moduleKey: "team", resource: "dashboard" },
   { label: "Settings", href: "/settings/roles", icon: Settings, moduleKey: "settings", resource: "settings" },
 ];
 
@@ -105,14 +109,22 @@ export function Sidebar() {
   const { hasNav } = useMyPermissions();
 
   return (
-    <AppSidebar
-      brand={{ name: "QuikPreSales", subtitle: "Pre-Sales Portal", icon: Presentation }}
-      nav={toNavItems(NAV, disabled, hasNav)}
-      // Dark is the variant leadership's design shows, and CLAUDE.md specifies
-      // bg-accent-800 for sidebars — the shared component already supports it, we
-      // were simply on its light default.
-      theme="dark"
-      storageKey="quikpresales:sidebar"
-    />
+    <div
+      className="[&>aside]:!bg-accent-100
+        [&_nav_.bg-accent-50]:!bg-accent-600 [&_nav_.text-accent-700]:!text-white"
+    >
+      <AppSidebar
+        brand={{ name: "QuikPreSales", subtitle: "Pre-Sales Portal", icon: Presentation }}
+        nav={toNavItems(NAV, disabled, hasNav)}
+        // Keep the light palette's readable controls while the wrapper supplies
+        // the app's light-blue, tenant-theme-aware sidebar surface. The nav-scoped
+        // overrides bump the active item to a solid accent-600 pill — on its own,
+        // the palette's default bg-accent-50 active highlight is nearly invisible
+        // against this bg-accent-100 sidebar. Scoped to `nav` so it doesn't also
+        // repaint the brand icon chip above, which reuses the same accent-50/700 pair.
+        theme="light"
+        storageKey="quikpresales:sidebar"
+      />
+    </div>
   );
 }

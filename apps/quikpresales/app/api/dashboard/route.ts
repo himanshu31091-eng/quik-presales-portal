@@ -157,6 +157,17 @@ export const GET = withDashboardAuth(async ({ orgId, userId }, req) => {
       }
       stageBuckets.set(row.stage, entry);
     }
+    // actorId is a soft reference (no Prisma relation) — resolve display names
+    // in one extra lookup so the feed says who did something, not just what.
+    const actorIds = [...new Set(recentActivity.map((e) => e.actorId).filter((v): v is string => !!v))];
+    const actors = actorIds.length
+      ? await db.user.findMany({
+          where: { id: { in: actorIds } },
+          select: { id: true, firstName: true, lastName: true },
+        })
+      : [];
+    const actorName = new Map(actors.map((a) => [a.id, `${a.firstName} ${a.lastName}`.trim()]));
+
     const [templates, demos, knowledge] = assetCounts;
     const [newEngagements, newProposals, newRfps, prevEngagements, prevProposals, prevRfps] =
       newThisPeriod;
@@ -276,6 +287,7 @@ export const GET = withDashboardAuth(async ({ orgId, userId }, req) => {
       })),
       recentActivity: recentActivity.map((e) => ({
         ...e,
+        actorName: e.actorId ? (actorName.get(e.actorId) ?? null) : null,
         createdAt: e.createdAt.toISOString(),
       })),
     };
