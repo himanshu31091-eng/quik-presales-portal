@@ -48,3 +48,4 @@ graphify-out/
 
 # Markdown files — local-only docs, analyses, scratch notes; never committed.
 *.md
+.env*
