@@ -2,6 +2,7 @@
 
 import {
   LayoutDashboard,
+  Inbox,
   Briefcase,
   FileSearch,
   FileText,
@@ -47,6 +48,7 @@ interface Entry {
 
 const NAV: Entry[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, moduleKey: "dashboard", resource: "dashboard" },
+  { label: "Leads", href: "/leads", icon: Inbox, moduleKey: "leads", resource: "engagements" },
   { label: "Engagements", href: "/engagements", icon: Briefcase, moduleKey: "engagements", resource: "engagements" },
   { label: "RFP Manager", href: "/rfps", icon: FileSearch, moduleKey: "rfp", resource: "rfp" },
   { label: "Proposals", href: "/proposals", icon: FileText, moduleKey: "proposals", resource: "proposals" },

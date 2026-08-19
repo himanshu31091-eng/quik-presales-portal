@@ -272,6 +272,7 @@ export const MODULE_REGISTRY: AppModuleConfig[] = [
     modules: [
       { key: "dashboard", label: "Dashboard", icon: "LayoutDashboard", href: "/dashboard" },
 
+      { key: "leads", label: "Leads", icon: "Inbox", href: "/leads", section: "Pipeline" },
       { key: "engagements", label: "Engagements", icon: "Briefcase", href: "/engagements", section: "Pipeline" },
       { key: "rfp", label: "RFP Manager", icon: "FileSearch", href: "/rfps", section: "Pipeline" },
       { key: "proposals", label: "Proposals", icon: "FileText", href: "/proposals", section: "Pipeline" },

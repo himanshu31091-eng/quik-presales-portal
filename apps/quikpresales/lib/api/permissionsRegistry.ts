@@ -132,6 +132,7 @@ export function isValidPair(resource: string, action: string): boolean {
  *     in `PsRoleNavigation`
  */
 export const NAV_TO_ENTITY: Record<string, Resource> = {
+  leads: "engagements",
   engagements: "engagements",
   rfp: "rfp",
   proposals: "proposals",
