@@ -143,6 +143,7 @@ export const NAV_TO_ENTITY: Record<string, Resource> = {
   winloss: "winloss",
   settings: "settings",
   team: "dashboard",
+  reports: "dashboard",
 };
 
 /** Pure-navigation keys — no backing resource, granted via RoleNavigation. */

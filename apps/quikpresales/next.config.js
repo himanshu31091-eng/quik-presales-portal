@@ -7,6 +7,11 @@ const nextConfig = {
     serverActions: {
       allowedOrigins: ["localhost:3015"],
     },
+    // @react-pdf/renderer ships its own React-like reconciler internals;
+    // letting webpack bundle it (rather than requiring it at runtime from
+    // node_modules) produces a second, incompatible copy and PDF export
+    // fails with "X.Component is not a constructor".
+    serverComponentsExternalPackages: ["@react-pdf/renderer"],
   },
   async headers() {
     return [

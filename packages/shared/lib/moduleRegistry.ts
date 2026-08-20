@@ -284,6 +284,7 @@ export const MODULE_REGISTRY: AppModuleConfig[] = [
       { key: "library.knowledge", label: "Knowledge", icon: "BookOpen", href: "/knowledge", parentKey: "library" },
 
       { key: "winloss", label: "Win / Loss", icon: "Trophy", href: "/winloss", section: "Insights" },
+      { key: "reports", label: "Reports", icon: "BarChart3", href: "/reports", section: "Insights" },
       { key: "weekly", label: "Weekly Dashboard", icon: "CalendarRange", href: "/weekly", section: "Insights" },
       { key: "team", label: "Team Overview", icon: "Users", href: "/team", section: "Insights" },
 

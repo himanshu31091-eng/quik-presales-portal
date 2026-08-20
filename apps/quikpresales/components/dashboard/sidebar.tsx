@@ -16,6 +16,7 @@ import {
   Users,
   Settings,
   Presentation,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import { AppSidebar, type NavItem } from "@quikit/ui";
@@ -65,6 +66,7 @@ const NAV: Entry[] = [
     ],
   },
   { label: "Win / Loss", href: "/winloss", icon: Trophy, moduleKey: "winloss", resource: "winloss" },
+  { label: "Reports", href: "/reports", icon: BarChart3, moduleKey: "reports", resource: "dashboard" },
   { label: "Weekly Dashboard", href: "/weekly", icon: CalendarRange, moduleKey: "weekly", resource: "dashboard" },
   { label: "Team Overview", href: "/team", icon: Users, moduleKey: "team", resource: "dashboard" },
   { label: "Settings", href: "/settings/roles", icon: Settings, moduleKey: "settings", resource: "settings" },
