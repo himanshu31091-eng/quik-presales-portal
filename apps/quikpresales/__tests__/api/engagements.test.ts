@@ -195,11 +195,16 @@ describe("POST /api/engagements/[id]/transition", () => {
 
   it("advances forward and records the move", async () => {
     setSession({ id: USER, orgId: ORG_A });
+    // Moving into "discovery" is checklist-gated (industry + estRevenue must be
+    // set) — the same findFirst mock backs both the transition handler's own
+    // lookup and evaluateChecklist's, so it must satisfy both.
     mockDb.psEngagement.findFirst.mockResolvedValue({
       id: "eng-1",
       title: "Acme",
       stage: "qualification",
       closedStatus: "open",
+      industry: "Manufacturing",
+      estRevenue: 5_000_000n,
     } as never);
 
     const res = await TRANSITION(

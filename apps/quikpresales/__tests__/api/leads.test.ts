@@ -75,6 +75,9 @@ beforeEach(() => {
   evaluateRequirement.mockResolvedValue(readyEvaluation());
   mockDb.psEngagement.create.mockResolvedValue({ id: "eng-1", title: "Acme ERP replacement" } as never);
   mockDb.psRfp.create.mockResolvedValue({ id: "rfp-1" } as never);
+  // salesOwnerId is a soft reference the queue resolves via a separate lookup;
+  // default to none found so tests that don't care about the name don't crash.
+  mockDb.user.findMany.mockResolvedValue([] as never);
 });
 
 describe("POST /api/leads — intake", () => {
