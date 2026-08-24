@@ -46,7 +46,12 @@ export function Select({
   size = "default",
   ...props
 }: SelectProps) {
-  const selectId = id || (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
+  // Fallback id comes from useId, not a slugified label: two <Select label="Status">
+  // on one screen (a filter bar plus an open modal, or one per table row) both
+  // produced id="status", and a duplicate id binds the label to whichever element
+  // comes first — leaving the rest unlabelled (WCAG 1.3.1 / 4.1.1).
+  const generatedId = React.useId();
+  const selectId = id || (label ? generatedId : undefined);
 
   return (
     <div>

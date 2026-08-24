@@ -89,6 +89,43 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [pending, close]);
 
+  // Trap Tab inside the dialog and hand focus back to whatever opened it.
+  // Escape/Enter above already cover the common exits, so this only closes the
+  // remaining gap where a user Tabs out into the page behind the backdrop.
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = React.useRef<HTMLElement | null>(null);
+  const titleId = React.useId();
+
+  React.useEffect(() => {
+    if (!pending) return;
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusables = Array.from(
+        panel.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      previouslyFocusedRef.current?.focus?.();
+    };
+  }, [pending]);
+
   const toneClasses =
     pending?.tone === "danger"
       ? { icon: "text-red-600 bg-red-50", btn: "bg-red-600 hover:bg-red-700", Icon: AlertTriangle }
@@ -111,8 +148,10 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
           onClick={() => close(false)}
           role="dialog"
           aria-modal="true"
+          aria-labelledby={titleId}
         >
             <motion.div
+              ref={panelRef}
               initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 12, scale: 0.98 }}
@@ -126,7 +165,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-base font-semibold text-slate-900">{pending.title}</h3>
+                    <h3 id={titleId} className="text-base font-semibold text-slate-900">{pending.title}</h3>
                     {pending.description && (
                       <p className="mt-1.5 text-sm text-slate-600 whitespace-pre-wrap">{pending.description}</p>
                     )}

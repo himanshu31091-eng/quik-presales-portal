@@ -54,8 +54,14 @@ export function ColMenu({
     <div className="relative inline-block" ref={ref}>
       <button
         onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
-        className="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
         title={`Column options: ${colKey}`}
+        // Icon-only trigger: `title` alone is not a dependable accessible name.
+        // focus-visible:opacity-100 above also keeps it from being invisible to
+        // keyboard users, since it only faded in on group hover.
+        aria-label={`Column options: ${colKey}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
         <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />

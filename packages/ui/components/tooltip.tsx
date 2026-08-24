@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, type ReactNode } from "react";
+import { useEffect, useId, useState, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 /**
@@ -41,6 +41,20 @@ export function Tooltip({
 }: TooltipProps) {
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const tooltipId = useId();
+  const open = pos !== null;
+
+  // Escape dismisses a focus-revealed tooltip without moving focus away, which
+  // WCAG 1.4.13 (Content on Hover or Focus) requires of any hoverable/focusable
+  // additional content.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPos(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
 
   if (content === undefined || content === null || content === false) {
     return <>{children}</>;
@@ -73,11 +87,21 @@ export function Tooltip({
       className={`relative ${triggerClassName}`}
       onMouseEnter={handleEnter}
       onMouseLeave={() => setPos(null)}
+      // Focus/blur mirror the mouse handlers so keyboard users get the tooltip
+      // too — it was previously hover-only (WCAG 2.1.1 / 1.4.13). Capture phase
+      // so focus landing on a nested trigger (button, link) still registers.
+      onFocusCapture={handleEnter}
+      onBlurCapture={() => setPos(null)}
+      // Names the trigger's own content for AT. Applied to the wrapper rather
+      // than cloning `children`, so no call site has to forward the prop.
+      aria-describedby={open ? tooltipId : undefined}
     >
       {children}
       {pos && typeof document !== "undefined" &&
         createPortal(
           <div
+            id={tooltipId}
+            role="tooltip"
             style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 9999, ...arrowOffsetStyle }}
             className={`${widthClass} ${baseContentClass} ${contentClassName}`.trim()}
           >

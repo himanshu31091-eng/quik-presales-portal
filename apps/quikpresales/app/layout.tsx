@@ -11,7 +11,14 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "QuikPreSales",
+  // Template so each route can set just its own name and still get a distinct,
+  // meaningful document title (WCAG 2.4.2). Dashboard pages are client
+  // components and cannot export metadata themselves, so each supplies it from
+  // a sibling layout.tsx.
+  title: {
+    default: "QuikPreSales",
+    template: "%s · QuikPreSales",
+  },
   description: "AI-assisted pre-sales: RFPs, proposals, demos and win/loss analysis",
 };
 
