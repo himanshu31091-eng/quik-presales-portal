@@ -222,6 +222,9 @@ function RequirementCard({
       <div className="mt-3">
         <Textarea
           rows={3}
+          // Placeholder text is not an accessible name — it disappears on input
+          // and is not reliably announced.
+          aria-label="Our response to this requirement"
           placeholder="Our response to this requirement…"
           value={response}
           disabled={!editable}

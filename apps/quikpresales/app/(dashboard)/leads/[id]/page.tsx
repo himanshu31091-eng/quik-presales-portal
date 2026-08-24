@@ -329,10 +329,11 @@ function RejectModal({
             options={REJECTION_REASONS.map((r) => ({ value: r, label: REJECTION_REASON_LABEL[r] }))}
           />
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-900">
+            <label htmlFor="lead-reject-reason" className="block text-sm font-medium text-gray-900">
               Explain (visible to sales)
             </label>
             <Textarea
+              id="lead-reject-reason"
               rows={4}
               value={reasonText}
               onChange={(e) => setReasonText(e.target.value)}

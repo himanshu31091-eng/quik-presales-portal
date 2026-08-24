@@ -358,10 +358,11 @@ function NewLeadModal({ onClose }: { onClose: () => void }) {
             placeholder="e.g. Acme Corp — D365 migration"
           />
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-900">
+            <label htmlFor="lead-requirement" className="block text-sm font-medium text-gray-900">
               Requirement, in your own words
             </label>
             <Textarea
+              id="lead-requirement"
               required
               rows={5}
               value={requirement}

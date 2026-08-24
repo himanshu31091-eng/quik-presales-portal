@@ -30,6 +30,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <ImpersonationBanner />
       <FeatureDisabledToast />
 
+      {/* Skip link — first focusable element on the page, so keyboard users can
+          jump past a 12+ item sidebar instead of tabbing through it on every
+          navigation. Visually hidden until focused (WCAG 2.4.1). */}
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+
       <div className="flex h-screen bg-[var(--color-bg-secondary)]">
         {/* Desktop: sidebar always present. Mobile: off-canvas drawer. */}
         <div className="hidden md:flex">
@@ -55,7 +62,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <Header onMenuClick={() => setMobileOpen((v) => !v)} />
-          <main className="min-w-0 flex-1 overflow-y-auto p-6">{children}</main>
+          {/* tabIndex={-1} so the skip link can move focus here, not just scroll. */}
+          <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto p-6 focus:outline-none">
+            {children}
+          </main>
         </div>
       </div>
     </SessionGuard>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Building2, ChevronDown, Search, X } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -52,6 +52,11 @@ export function TenantPicker({
   const [highlight, setHighlight] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Stable ids so the search input can point aria-activedescendant at the
+  // highlighted row — without it, arrow-key navigation is silent to a screen
+  // reader even though it works visually.
+  const listboxId = useId();
+  const optionId = (tenantId: string) => `${listboxId}-opt-${tenantId}`;
 
   const selected = tenants.find((t) => t.id === value) ?? null;
 
@@ -117,6 +122,8 @@ export function TenantPicker({
     <div ref={rootRef} className={cn("relative", className)}>
       <button
         type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         className={cn(
           "w-full flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-left",
@@ -154,8 +161,16 @@ export function TenantPicker({
                 onSearchChange?.(e.target.value);
               }}
               onKeyDown={handleKey}
+              role="combobox"
+              aria-expanded={open}
+              aria-controls={listboxId}
+              aria-activedescendant={filtered[highlight] ? optionId(filtered[highlight].id) : undefined}
+              aria-autocomplete="list"
               placeholder="Search tenants…"
-              className="w-full pl-9 pr-9 py-2 text-sm bg-transparent focus:outline-none"
+              // `focus:outline-none` with no replacement left this field with no
+              // visible focus indicator at all (WCAG 2.4.7). Ring matches the
+              // trigger button above.
+              className="w-full pl-9 pr-9 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-accent-500 rounded"
             />
             {query && (
               <button
@@ -172,7 +187,7 @@ export function TenantPicker({
               </button>
             )}
           </div>
-          <div className="max-h-72 overflow-y-auto py-1">
+          <div id={listboxId} role="listbox" className="max-h-72 overflow-y-auto py-1">
             {loading && (
               <div className="px-3 py-4 text-center text-sm text-gray-500">Loading…</div>
             )}
@@ -183,6 +198,9 @@ export function TenantPicker({
               filtered.map((t, i) => (
                 <button
                   key={t.id}
+                  id={optionId(t.id)}
+                  role="option"
+                  aria-selected={t.id === value}
                   type="button"
                   onMouseEnter={() => setHighlight(i)}
                   onClick={() => commitSelection(t)}

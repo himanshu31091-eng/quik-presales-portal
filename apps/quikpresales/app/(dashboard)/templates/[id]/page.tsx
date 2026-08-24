@@ -289,6 +289,7 @@ export default function TemplateDetailPage() {
                       <Textarea
                         className="mt-2"
                         rows={4}
+                        aria-label={`${s.title || `Section ${i + 1}`} — content`}
                         value={s.html}
                         onChange={(e) => updateSection(i, { html: e.target.value })}
                         placeholder="Section content — p, ul/ol/li, strong, em, table, blockquote, code are kept; everything else is stripped on save."
@@ -307,6 +308,7 @@ export default function TemplateDetailPage() {
               </p>
               <Textarea
                 rows={16}
+                aria-label="Template content (JSON)"
                 value={rawContent}
                 onChange={(e) => setRawContent(e.target.value)}
                 className="font-mono text-xs"

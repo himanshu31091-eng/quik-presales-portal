@@ -67,9 +67,13 @@ export function Header({ onMenuClick }: HeaderProps) {
           </button>
         ) : null}
 
-        <h1 className="text-base font-semibold text-gray-900">
+        {/* A <p>, not an <h1>: this greeting renders on every page alongside each
+            page's own PageHeader <h1>. Two h1s per page meant screen-reader
+            users navigating by heading landed on "Welcome, …" instead of the
+            page's actual subject. Styling is unchanged. */}
+        <p className="text-base font-semibold text-gray-900">
           Welcome, {fullName.split(" ")[0]}!
-        </h1>
+        </p>
 
         {/* Active-org chip — multi-org members must always be able to see which
             tenant they're operating in. Hidden on very small screens so the

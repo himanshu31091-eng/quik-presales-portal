@@ -96,6 +96,7 @@ export function FilterPicker({
   // narrows the list, or it resets to page 1) and no longer contains it.
   const [lastSelected, setLastSelected] = useState<FilterOption | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const isServerSearch = !!onSearchChange;
 
   // Close on outside click
@@ -109,6 +110,19 @@ export function FilterPicker({
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
   }, []);
+
+  function closeAndRefocus() {
+    setOpen(false);
+    setSearch("");
+    triggerRef.current?.focus();
+  }
+
+  function handleMenuKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      closeAndRefocus();
+    }
+  }
 
   // Server-search mode: report the query to the caller, debounced so we don't
   // refetch on every keystroke. Kept in a ref so an inline `onSearchChange`
@@ -162,7 +176,10 @@ export function FilterPicker({
     <div ref={ref} className="relative">
       {/* Trigger button */}
       <button
+        ref={triggerRef}
         type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
         onClick={() => setOpen(o => !o)}
         className={`w-full flex items-center justify-between gap-2 px-3 py-1.5 text-xs border rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-accent-400 transition-colors ${
           open ? "border-accent-300 ring-1 ring-accent-400" : "border-gray-200"
@@ -188,7 +205,10 @@ export function FilterPicker({
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute top-full left-0 mt-1 w-full min-w-[220px] bg-white border border-gray-200 rounded-xl shadow-xl z-[100] overflow-hidden">
+        <div
+          className="absolute top-full left-0 mt-1 w-full min-w-[220px] bg-white border border-gray-200 rounded-xl shadow-xl z-[100] overflow-hidden"
+          onKeyDown={handleMenuKeyDown}
+        >
           {/* Search */}
           <div className="p-2 border-b border-gray-100">
             <div className="relative">
@@ -211,10 +231,12 @@ export function FilterPicker({
           </div>
 
           {/* Options */}
-          <div className="max-h-48 overflow-y-auto" onScroll={handleScroll}>
+          <div className="max-h-48 overflow-y-auto" role="listbox" onScroll={handleScroll}>
             {/* All option */}
             {!search.trim() && (
               <button
+                role="option"
+                aria-selected={!value}
                 onClick={() => select("")}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors ${
                   !value ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-gray-50"
@@ -234,6 +256,8 @@ export function FilterPicker({
               return (
                 <button
                   key={opt.value}
+                  role="option"
+                  aria-selected={isSelected}
                   onClick={() => select(opt.value)}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors ${
                     isSelected ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-gray-50"
@@ -254,7 +278,7 @@ export function FilterPicker({
                   <div className="min-w-0">
                     <span className="block text-xs truncate">{opt.label}</span>
                     {opt.sublabel && (
-                      <span className={`block text-[10px] truncate ${isSelected ? "text-gray-300" : "text-gray-400"}`}>
+                      <span className={`block text-[10px] truncate ${isSelected ? "text-gray-300" : "text-gray-500"}`}>
                         {opt.sublabel}
                       </span>
                     )}
@@ -264,7 +288,7 @@ export function FilterPicker({
             })}
 
             {filtered.length === 0 && (
-              <div className="px-3 py-4 text-xs text-gray-400 text-center">
+              <div className="px-3 py-4 text-xs text-gray-500 text-center">
                 {isServerSearch && loading ? "Searching…" : "No results"}
               </div>
             )}
@@ -272,7 +296,7 @@ export function FilterPicker({
             {/* Infinite-scroll loading footer. Only renders when the caller
                 opts in via `onLoadMore` AND a fetch is in flight. */}
             {onLoadMore && loadingMore && (
-              <div className="px-3 py-2 text-[10px] text-gray-400 text-center border-t border-gray-100">
+              <div className="px-3 py-2 text-[10px] text-gray-500 text-center border-t border-gray-100">
                 Loading more…
               </div>
             )}

@@ -50,6 +50,7 @@ export function DropdownPicker<T extends string = string>({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -62,6 +63,19 @@ export function DropdownPicker<T extends string = string>({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
+
+  function closeAndRefocus() {
+    setOpen(false);
+    setSearch("");
+    triggerRef.current?.focus();
+  }
+
+  function handleMenuKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      closeAndRefocus();
+    }
+  }
 
   const selected = options.find((o) => o.value === value);
   const q = search.trim().toLowerCase();
@@ -86,7 +100,10 @@ export function DropdownPicker<T extends string = string>({
   return (
     <div ref={ref} className={`relative ${className}`}>
       <button
+        ref={triggerRef}
         type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
         onClick={() => !disabled && setOpen((o) => !o)}
         disabled={disabled}
         className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs border rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-accent-400 ${
@@ -102,7 +119,10 @@ export function DropdownPicker<T extends string = string>({
       </button>
 
       {open && !disabled && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
+        <div
+          className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden"
+          onKeyDown={handleMenuKeyDown}
+        >
           {searchable && (
             <div className="p-2 border-b border-gray-100">
               <input
@@ -116,14 +136,14 @@ export function DropdownPicker<T extends string = string>({
             </div>
           )}
 
-          <div className="overflow-y-auto" style={{ maxHeight: maxListHeight }}>
+          <div className="overflow-y-auto" role="listbox" style={{ maxHeight: maxListHeight }}>
             {filtered.length === 0 ? (
-              <p className="px-3 py-3 text-xs italic text-gray-400">No matches</p>
+              <p className="px-3 py-3 text-xs italic text-gray-500">No matches</p>
             ) : showGroups ? (
               groupKeys.map((g) => (
                 <div key={g}>
                   {g && (
-                    <p className="sticky top-0 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 border-b border-gray-100">
+                    <p className="sticky top-0 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-100">
                       {g}
                     </p>
                   )}
@@ -148,6 +168,8 @@ function Item<T extends string>({ opt, selected, onPick }: { opt: DropdownOption
   return (
     <button
       type="button"
+      role="option"
+      aria-selected={selected}
       onClick={() => onPick(opt.value)}
       className={`w-full flex items-start gap-2 px-3 py-2 text-xs text-left hover:bg-gray-50 ${
         selected ? "bg-accent-50 text-accent-700" : "text-gray-800"
@@ -158,7 +180,7 @@ function Item<T extends string>({ opt, selected, onPick }: { opt: DropdownOption
       </span>
       <span className="flex-1 min-w-0">
         <span className="block truncate font-medium">{opt.label}</span>
-        {opt.hint && <span className="block truncate text-[11px] text-gray-400">{opt.hint}</span>}
+        {opt.hint && <span className="block truncate text-[11px] text-gray-500">{opt.hint}</span>}
       </span>
     </button>
   );

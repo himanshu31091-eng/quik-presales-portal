@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { Children, cloneElement, isValidElement, useId, type ReactNode } from "react";
 import { cn } from "../lib/utils";
 
 export interface FieldProps {
@@ -10,19 +10,54 @@ export interface FieldProps {
   hint?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** Explicit id for the control. Omit to have one generated. */
+  htmlFor?: string;
 }
 
-/** Single labelled form field. Use inside FormRow or on its own. */
-export function Field({ label, required, error, hint, children, className }: FieldProps) {
+/**
+ * Single labelled form field. Use inside FormRow or on its own.
+ *
+ * The label is programmatically bound to the control: if the only child is an
+ * element without its own `id`, this injects the generated one and points
+ * `htmlFor` at it. Previously the `<label>` had no `htmlFor` and didn't wrap
+ * `children`, so it named nothing at all (WCAG 1.3.1 / 4.1.2).
+ *
+ * `required` is conveyed three ways, not just by a red glyph: the asterisk
+ * (hidden from AT), visually-hidden "(required)" text in the label, and
+ * `aria-required` on the control itself (WCAG 1.4.1 / 3.3.2).
+ */
+export function Field({ label, required, error, hint, children, className, htmlFor }: FieldProps) {
+  const generatedId = useId();
+  const only = Children.count(children) === 1 ? Children.only(children) : null;
+  const childProps = isValidElement(only)
+    ? (only.props as { id?: string; "aria-required"?: boolean | "true" | "false" })
+    : undefined;
+  const controlId = htmlFor ?? childProps?.id ?? generatedId;
+
+  // Only clone when we're actually adding something, so a child that already
+  // manages its own id/aria stays untouched.
+  const control =
+    isValidElement(only) && (!childProps?.id || (required && childProps["aria-required"] === undefined))
+      ? cloneElement(only, {
+          ...(childProps?.id ? {} : { id: controlId }),
+          ...(required && childProps?.["aria-required"] === undefined ? { "aria-required": true } : {}),
+        } as Record<string, unknown>)
+      : children;
+
   return (
     <div className={cn("flex flex-col gap-1", className)}>
       {label && (
-        <label className="text-xs font-medium text-gray-700">
+        <label htmlFor={controlId} className="text-xs font-medium text-gray-700">
           {label}
-          {required && <span className="text-red-500 ml-0.5">*</span>}
+          {required && (
+            <>
+              <span aria-hidden="true" className="text-red-500 ml-0.5">*</span>
+              <span className="sr-only"> (required)</span>
+            </>
+          )}
         </label>
       )}
-      {children}
+      {control}
       {error ? (
         <span className="text-[11px] text-red-600">{error}</span>
       ) : hint ? (

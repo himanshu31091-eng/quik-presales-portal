@@ -240,14 +240,29 @@ export function TableShell({
   );
 }
 
+/**
+ * `role="status"` (an implicit polite live region) so a screen reader announces
+ * that a page is fetching rather than sitting on silence. gray-500 rather than
+ * gray-400: this is real content, and gray-400 on white is ~2.5:1, under the
+ * 4.5:1 floor for body text.
+ */
 export function Loading({ label = "Loading…" }: { label?: string }) {
-  return <p className="py-10 text-center text-sm text-gray-400">{label}</p>;
+  return (
+    <p role="status" aria-live="polite" className="py-10 text-center text-sm text-gray-500">
+      {label}
+    </p>
+  );
 }
 
+/**
+ * `role="alert"` because this frequently *replaces* the whole page body on a
+ * failed fetch — without it the content silently vanishes for a screen-reader
+ * user with no announcement that anything went wrong.
+ */
 export function ErrorNote({ error }: { error: unknown }) {
   const message = error instanceof Error ? error.message : "Something went wrong";
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+    <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
       {message}
     </div>
   );

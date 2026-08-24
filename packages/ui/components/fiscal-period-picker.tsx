@@ -59,6 +59,7 @@ export function FiscalPeriodPicker({
 }: FiscalPeriodPickerProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   // Close on outside click
   useEffect(() => {
@@ -68,6 +69,14 @@ export function FiscalPeriodPicker({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  function handlePopoverKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
+  }
 
   // Ensure selected year is visible even if the DB-scoped list is empty / out of sync
   const displayYears = years.length ? years : [year];
@@ -80,8 +89,11 @@ export function FiscalPeriodPicker({
   return (
     <div className={`relative ${className}`} ref={ref}>
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
+        aria-haspopup="dialog"
+        aria-expanded={open}
         onClick={() => setOpen(o => !o)}
         className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs border rounded-md transition-colors ${
           disabled ? "border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50"
@@ -99,7 +111,12 @@ export function FiscalPeriodPicker({
       </button>
 
       {open && (
-        <div className="absolute top-full right-0 mt-1.5 w-64 bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-4 space-y-4">
+        <div
+          role="dialog"
+          aria-label="Choose fiscal period"
+          onKeyDown={handlePopoverKeyDown}
+          className="absolute top-full right-0 mt-1.5 w-64 bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-4 space-y-4"
+        >
           <div>
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Fiscal Year</p>
             {displayYears.length === 0 ? (

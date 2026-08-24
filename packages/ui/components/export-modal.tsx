@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Download } from "lucide-react";
 import { cn } from "../lib/utils";
@@ -50,6 +50,9 @@ export function ExportModal({
     isTrashActive ? "filtered" : "filtered",
   );
   const [busy, setBusy] = useState(false);
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -57,6 +60,30 @@ export function ExportModal({
       setScope("filtered");
     }
   }, [open, defaultCheckedKeys]);
+
+  // Escape to close, focus moved into the panel on open and restored to the
+  // trigger on close (WCAG 2.1.2 / 2.4.3) — this modal previously had none of it.
+  useEffect(() => {
+    if (!open) return;
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+    const frame = requestAnimationFrame(() => {
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusable = panel.querySelector<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      (focusable ?? panel).focus();
+    });
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("keydown", onKey);
+      previouslyFocusedRef.current?.focus?.();
+    };
+  }, [open, onClose]);
 
   if (!open || typeof document === "undefined") return null;
 
@@ -89,11 +116,18 @@ export function ExportModal({
     // (which owns a z-[100] stacking context) regardless of where in the page
     // tree the trigger is mounted.
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col focus:outline-none"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+            <h3 id={titleId} className="text-sm font-semibold text-gray-900">{title}</h3>
             <p className="text-xs text-gray-500">
               Choose columns and which rows to include.
             </p>
@@ -101,6 +135,7 @@ export function ExportModal({
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close"
             className="text-gray-400 hover:text-gray-600"
           >
             <X className="h-4 w-4" />

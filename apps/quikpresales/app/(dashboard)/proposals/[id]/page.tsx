@@ -238,6 +238,9 @@ export default function ProposalDetailPage() {
               >
                 <Textarea
                   rows={10}
+                  // The Panel heading names this field visually, but a heading is
+                  // not a label — without this the editor is an unnamed control.
+                  aria-label={`${section.title} — section content`}
                   className="font-mono text-xs"
                   placeholder="<p>Section content as HTML…</p>"
                   value={section.html}

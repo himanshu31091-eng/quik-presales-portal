@@ -3,3 +3,37 @@
 /* App-specific styles AFTER the shared import. Keep this file small —
    prefer Tailwind utility classes in components. Anything reusable belongs
    in @quikit/ui, not here. */
+
+/* Skip-to-content link (WCAG 2.4.1). Written as real CSS rather than a stack of
+   `focus:` utilities because it needs ~10 rare variant combos that Tailwind's
+   JIT only emits if it sees them, and a skip link that silently stops being
+   visible on focus is worse than none. Off-screen until focused, then pinned
+   top-left above all app chrome. */
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 300;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  background: #ffffff;
+  color: #111827;
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  /* Move it out of view without removing it from the tab order. */
+  transform: translateY(-200%);
+  transition: transform 150ms ease-out;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+  outline: 2px solid var(--accent-600, #2563eb);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
+  }
+}
