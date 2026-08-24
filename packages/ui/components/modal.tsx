@@ -5,6 +5,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../lib/utils";
 import { X } from "lucide-react";
 
+/** Threaded from `Modal` to `ModalTitle` so the dialog gets an `aria-labelledby`
+ * without every call site having to wire up matching ids by hand. */
+const ModalTitleIdContext = React.createContext<string | undefined>(undefined);
+
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 interface ModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -18,16 +25,71 @@ const Modal = ({
   children,
   className,
 }: ModalProps) => {
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = React.useRef<HTMLElement | null>(null);
+  const titleId = React.useId();
+
+  // Body scroll lock, initial focus, and focus restoration all key off the same
+  // open/close transition, so they live in one effect.
   React.useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
+    if (!open) {
       document.body.style.overflow = "unset";
+      return;
     }
+    document.body.style.overflow = "hidden";
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+
+    // AnimatePresence doesn't necessarily have the panel's children mounted on
+    // the frame after `open` flips, so a single rAF can find nothing focusable
+    // and leave focus on the trigger behind the backdrop. Retry for a few
+    // frames, and stop as soon as something inside the panel takes focus.
+    let frame = 0;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 20;
+    const tryFocus = () => {
+      const panel = panelRef.current;
+      if (panel) {
+        const focusable = panel.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+        if (focusable) {
+          focusable.focus();
+          return;
+        }
+        // Nothing focusable yet — park focus on the panel so the user is at
+        // least inside the dialog, then keep looking.
+        if (!panel.contains(document.activeElement)) panel.focus();
+      }
+      if (++attempts < MAX_ATTEMPTS) frame = requestAnimationFrame(tryFocus);
+    };
+    frame = requestAnimationFrame(tryFocus);
+
     return () => {
+      cancelAnimationFrame(frame);
       document.body.style.overflow = "unset";
+      previouslyFocusedRef.current?.focus?.();
     };
   }, [open]);
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      onOpenChange(false);
+      return;
+    }
+    if (e.key !== "Tab") return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    const focusables = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -49,6 +111,12 @@ const Modal = ({
           onClick={() => onOpenChange(false)}
         >
           <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            tabIndex={-1}
+            onKeyDown={handleKeyDown}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
@@ -69,7 +137,9 @@ const Modal = ({
             )}
             onClick={(e) => e.stopPropagation()}
           >
-            {children}
+            <ModalTitleIdContext.Provider value={titleId}>
+              {children}
+            </ModalTitleIdContext.Provider>
           </motion.div>
         </motion.div>
       )}
@@ -131,13 +201,17 @@ ModalHeader.displayName = "ModalHeader";
 interface ModalTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {}
 
 const ModalTitle = React.forwardRef<HTMLHeadingElement, ModalTitleProps>(
-  ({ className, ...props }, ref) => (
-    <h2
-      ref={ref}
-      className={cn("text-xl font-bold text-text-primary", className)}
-      {...props}
-    />
-  )
+  ({ className, id, ...props }, ref) => {
+    const contextId = React.useContext(ModalTitleIdContext);
+    return (
+      <h2
+        ref={ref}
+        id={id ?? contextId}
+        className={cn("text-xl font-bold text-text-primary", className)}
+        {...props}
+      />
+    );
+  }
 );
 
 ModalTitle.displayName = "ModalTitle";

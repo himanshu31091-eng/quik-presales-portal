@@ -100,7 +100,20 @@ export function UserSelect(props: UserSelectProps) {
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [pos, setPos] = useState<MenuPos | null>(null);
+
+  function closeAndRefocus() {
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
+
+  function handleMenuKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      closeAndRefocus();
+    }
+  }
 
   // The dropdown is rendered in a portal with `position: fixed` so it escapes
   // any `overflow-y-auto` ancestor (e.g. the RightPanel form body). Without
@@ -265,7 +278,10 @@ export function UserSelect(props: UserSelectProps) {
   return (
     <div ref={ref} className="relative">
       <button
+        ref={triggerRef}
         type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
         onClick={() => { if (!disabled) { setOpen(o => !o); setSearch(""); } }}
         disabled={disabled}
         className={`w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-xs focus:outline-none ${disabled ? "bg-gray-50 text-gray-500 cursor-not-allowed border-gray-200" : `bg-white hover:bg-gray-50 focus:ring-1 focus:ring-accent-400 ${error ? "border-red-400" : "border-gray-200"}`}`}
@@ -277,6 +293,7 @@ export function UserSelect(props: UserSelectProps) {
       {open && pos && typeof document !== "undefined" && createPortal(
         <div
           ref={menuRef}
+          onKeyDown={handleMenuKeyDown}
           style={{
             position: "fixed",
             left: pos.left,
@@ -309,7 +326,7 @@ export function UserSelect(props: UserSelectProps) {
           {/* Items \u2014 the only scrolling region; min-h-0 lets it shrink to fit.
               `scrollbar-visible` opts back in to a visible scrollbar (hidden
               globally) so long member lists read as scrollable. */}
-          <div className="scrollbar-visible flex-1 min-h-0 overflow-y-auto py-1" onScroll={handleScroll}>
+          <div className="scrollbar-visible flex-1 min-h-0 overflow-y-auto py-1" role="listbox" onScroll={handleScroll}>
             {/* Single-mode "clear selection" row */}
             {mode === "single" && props.value && (
               <button
@@ -334,6 +351,8 @@ export function UserSelect(props: UserSelectProps) {
                 <button
                   key={u.id}
                   type="button"
+                  role="option"
+                  aria-selected={isSelected}
                   onClick={() => handleItemClick(u.id)}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 transition-colors ${isSelected ? "bg-accent-50" : ""}`}
                 >

@@ -45,6 +45,7 @@ export function DatePicker({
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const today = useMemo(() => new Date(), []);
   const todayISO = useMemo(() => toISO(today), [today]);
 
@@ -65,6 +66,18 @@ export function DatePicker({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
+
+  function closeAndRefocus() {
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
+
+  function handlePopoverKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      closeAndRefocus();
+    }
+  }
 
   // Compute visible 6×7 grid (always 42 cells).
   const grid = useMemo(() => {
@@ -94,7 +107,10 @@ export function DatePicker({
   return (
     <div ref={ref} className={`relative ${className}`}>
       <button
+        ref={triggerRef}
         type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
         onClick={() => !disabled && setOpen((o) => !o)}
         disabled={disabled}
         className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs border rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-accent-400 ${
@@ -108,7 +124,13 @@ export function DatePicker({
       </button>
 
       {open && !disabled && (
-        <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-xl p-3" style={{ minWidth: 280 }}>
+        <div
+          role="dialog"
+          aria-label="Choose date"
+          onKeyDown={handlePopoverKeyDown}
+          className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-xl p-3"
+          style={{ minWidth: 280 }}
+        >
           {/* Header */}
           <div className="flex items-center justify-between mb-2">
             <button type="button" onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))}
@@ -142,7 +164,7 @@ export function DatePicker({
                   type="button"
                   key={c.iso}
                   disabled={!allowed}
-                  onClick={() => { onChange(c.iso); setOpen(false); }}
+                  onClick={() => { onChange(c.iso); closeAndRefocus(); }}
                   className={`text-[11px] h-7 w-7 rounded flex items-center justify-center transition-colors ${
                     !c.inMonth ? "text-gray-300" : ""
                   } ${
@@ -163,9 +185,9 @@ export function DatePicker({
 
           {/* Footer */}
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100 text-[11px]">
-            <button type="button" onClick={() => { onChange(todayISO); setOpen(false); }}
+            <button type="button" onClick={() => { onChange(todayISO); closeAndRefocus(); }}
               className="text-accent-600 hover:underline font-medium">Today</button>
-            <button type="button" onClick={() => { onChange(""); setOpen(false); }}
+            <button type="button" onClick={() => { onChange(""); closeAndRefocus(); }}
               className="text-gray-500 hover:underline">Clear</button>
           </div>
         </div>
