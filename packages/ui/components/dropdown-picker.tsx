@@ -138,12 +138,12 @@ export function DropdownPicker<T extends string = string>({
 
           <div className="overflow-y-auto" role="listbox" style={{ maxHeight: maxListHeight }}>
             {filtered.length === 0 ? (
-              <p className="px-3 py-3 text-xs italic text-gray-400">No matches</p>
+              <p className="px-3 py-3 text-xs italic text-gray-500">No matches</p>
             ) : showGroups ? (
               groupKeys.map((g) => (
                 <div key={g}>
                   {g && (
-                    <p className="sticky top-0 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 border-b border-gray-100">
+                    <p className="sticky top-0 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-100">
                       {g}
                     </p>
                   )}
@@ -180,7 +180,7 @@ function Item<T extends string>({ opt, selected, onPick }: { opt: DropdownOption
       </span>
       <span className="flex-1 min-w-0">
         <span className="block truncate font-medium">{opt.label}</span>
-        {opt.hint && <span className="block truncate text-[11px] text-gray-400">{opt.hint}</span>}
+        {opt.hint && <span className="block truncate text-[11px] text-gray-500">{opt.hint}</span>}
       </span>
     </button>
   );

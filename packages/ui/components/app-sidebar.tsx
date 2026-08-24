@@ -198,6 +198,11 @@ export function AppSidebar({ brand, nav, footer, theme: themeProp, storageKey = 
                   onClick={() => setOpenGroups(prev => ({ ...prev, [item.label]: !isOpen }))}
                   className={`w-full flex items-center gap-3 ${collapsed ? "px-2 justify-center" : "px-4"} py-2.5 text-sm text-left transition-colors ${active ? p.itemActive : `${p.itemRest} ${p.itemHover}`}`}
                   title={collapsed ? item.label : undefined}
+                  // When collapsed the visible label is dropped, leaving only an
+                  // icon — `title` alone isn't a reliable accessible name (no
+                  // touch support, inconsistent across screen readers).
+                  aria-label={collapsed ? item.label : undefined}
+                  aria-expanded={isOpen}
                 >
                   {Icon && <Icon className={`h-4 w-4 flex-shrink-0 ${active ? p.iconActive : p.iconRest}`} />}
                   {!collapsed && <span className="flex-1 min-w-0 truncate">{item.label}</span>}
@@ -232,6 +237,10 @@ export function AppSidebar({ brand, nav, footer, theme: themeProp, storageKey = 
               href={item.href ?? "#"}
               className={`flex items-center gap-3 ${collapsed ? "px-2 justify-center" : "px-4"} py-2.5 text-sm transition-colors ${active ? p.itemActive : `${p.itemRest} ${p.itemHover}`}`}
               title={collapsed ? item.label : undefined}
+              // See the group-button note above: collapsed leaf links are
+              // icon-only, so they need a real accessible name.
+              aria-label={collapsed ? item.label : undefined}
+              aria-current={active ? "page" : undefined}
             >
               {Icon && <Icon className={`h-4 w-4 flex-shrink-0 ${active ? p.iconActive : p.iconRest}`} />}
               {!collapsed && <span className="flex-1 min-w-0 truncate">{item.label}</span>}

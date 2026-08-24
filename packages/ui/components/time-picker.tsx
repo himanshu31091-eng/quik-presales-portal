@@ -42,6 +42,19 @@ function display12(v: string): string {
 export function TimePicker({ value, onChange, placeholder = "Select time", disabled, step = 5, className = "" }: TimePickerProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  function closeAndRefocus() {
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
+
+  function handlePopoverKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      closeAndRefocus();
+    }
+  }
 
   // Internal draft state — committed to onChange when user clicks Set.
   const initial = parse24(value) ?? { h: 12, m: 0 };
@@ -85,7 +98,10 @@ export function TimePicker({ value, onChange, placeholder = "Select time", disab
   return (
     <div ref={ref} className={`relative ${className}`}>
       <button
+        ref={triggerRef}
         type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
         onClick={() => !disabled && setOpen((o) => !o)}
         disabled={disabled}
         className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs border rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-accent-400 ${
@@ -99,7 +115,13 @@ export function TimePicker({ value, onChange, placeholder = "Select time", disab
       </button>
 
       {open && !disabled && (
-        <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-xl p-3" style={{ minWidth: 240 }}>
+        <div
+          role="dialog"
+          aria-label="Choose time"
+          onKeyDown={handlePopoverKeyDown}
+          className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-xl p-3"
+          style={{ minWidth: 240 }}
+        >
           <div className="flex items-stretch justify-center gap-2">
             <Wheel values={hours} value={hour12} onChange={(v) => { setHour12(v); commit(v, minute, period); }} pad={2} />
             <span className="self-center text-base font-semibold text-gray-400">:</span>

@@ -278,7 +278,7 @@ export function FilterPicker({
                   <div className="min-w-0">
                     <span className="block text-xs truncate">{opt.label}</span>
                     {opt.sublabel && (
-                      <span className={`block text-[10px] truncate ${isSelected ? "text-gray-300" : "text-gray-400"}`}>
+                      <span className={`block text-[10px] truncate ${isSelected ? "text-gray-300" : "text-gray-500"}`}>
                         {opt.sublabel}
                       </span>
                     )}
@@ -288,7 +288,7 @@ export function FilterPicker({
             })}
 
             {filtered.length === 0 && (
-              <div className="px-3 py-4 text-xs text-gray-400 text-center">
+              <div className="px-3 py-4 text-xs text-gray-500 text-center">
                 {isServerSearch && loading ? "Searching…" : "No results"}
               </div>
             )}
@@ -296,7 +296,7 @@ export function FilterPicker({
             {/* Infinite-scroll loading footer. Only renders when the caller
                 opts in via `onLoadMore` AND a fetch is in flight. */}
             {onLoadMore && loadingMore && (
-              <div className="px-3 py-2 text-[10px] text-gray-400 text-center border-t border-gray-100">
+              <div className="px-3 py-2 text-[10px] text-gray-500 text-center border-t border-gray-100">
                 Loading more…
               </div>
             )}

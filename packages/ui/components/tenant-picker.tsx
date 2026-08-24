@@ -155,7 +155,10 @@ export function TenantPicker({
               }}
               onKeyDown={handleKey}
               placeholder="Search tenants…"
-              className="w-full pl-9 pr-9 py-2 text-sm bg-transparent focus:outline-none"
+              // `focus:outline-none` with no replacement left this field with no
+              // visible focus indicator at all (WCAG 2.4.7). Ring matches the
+              // trigger button above.
+              className="w-full pl-9 pr-9 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-accent-500 rounded"
             />
             {query && (
               <button

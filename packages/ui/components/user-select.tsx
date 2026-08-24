@@ -339,7 +339,7 @@ export function UserSelect(props: UserSelectProps) {
             )}
 
             {filtered.length === 0 ? (
-              <p className="px-3 py-3 text-xs text-gray-400 text-center">
+              <p className="px-3 py-3 text-xs text-gray-500 text-center">
                 {isServerSearch && (loading || loadingMore) ? "Searching…" : "No users match."}
               </p>
             ) : filtered.map(u => {
@@ -366,7 +366,7 @@ export function UserSelect(props: UserSelectProps) {
                   </div>
                   <div className="text-left min-w-0 flex-1">
                     <span className={`block text-xs font-medium truncate ${isSelected ? "text-accent-700" : "text-gray-800"}`}>{full}</span>
-                    <span className="block text-[10px] text-gray-400 truncate">{u.email}</span>
+                    <span className="block text-[10px] text-gray-500 truncate">{u.email}</span>
                   </div>
                 </button>
               );
@@ -374,7 +374,7 @@ export function UserSelect(props: UserSelectProps) {
 
             {/* Infinite-scroll footer — only when the caller opts in. */}
             {onLoadMore && loadingMore && filtered.length > 0 && (
-              <div className="px-3 py-2 text-[10px] text-gray-400 text-center border-t border-gray-100">
+              <div className="px-3 py-2 text-[10px] text-gray-500 text-center border-t border-gray-100">
                 Loading more…
               </div>
             )}
