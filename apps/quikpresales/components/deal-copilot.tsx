@@ -95,7 +95,7 @@ export function DealCopilot({ engagementId }: { engagementId: string }) {
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           placeholder="Ask anything about this deal…"
-          className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
+          className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-700"
         />
         <Button size="sm" disabled={run.isPending || question.trim().length < 3}>
           Ask

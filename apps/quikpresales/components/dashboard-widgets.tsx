@@ -126,7 +126,7 @@ export function KpiCard({
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow">
       {href ? (
-        <Link href={href} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400">
+        <Link href={href} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-700">
           {body}
         </Link>
       ) : (
@@ -246,7 +246,7 @@ export function QuickActions({ actions }: { actions: QuickAction[] }) {
           <Link
             key={a.label}
             href={a.href}
-            className="flex flex-col items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-3 text-center transition-colors hover:border-accent-200 hover:bg-accent-50/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400"
+            className="flex flex-col items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-3 text-center transition-colors hover:border-accent-200 hover:bg-accent-50/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-700"
           >
             <a.icon className="h-5 w-5 text-accent-600" aria-hidden />
             <span className="text-xs font-medium leading-tight text-gray-700">{a.label}</span>

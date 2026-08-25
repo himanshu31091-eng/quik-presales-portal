@@ -40,7 +40,7 @@ export function Pagination({
             <select
               value={limit}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="border border-gray-200 rounded px-1.5 py-0.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-accent-400"
+              className="border border-gray-200 rounded px-1.5 py-0.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-accent-700"
             >
               {pageSizeOptions.map((opt) => (
                 <option key={opt} value={opt}>{opt}</option>

@@ -104,7 +104,7 @@ export function TimePicker({ value, onChange, placeholder = "Select time", disab
         aria-expanded={open}
         onClick={() => !disabled && setOpen((o) => !o)}
         disabled={disabled}
-        className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs border rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-accent-400 ${
+        className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs border rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-accent-700 ${
           disabled
             ? "border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed opacity-70"
             : "border-gray-200 hover:bg-gray-50 text-gray-800"

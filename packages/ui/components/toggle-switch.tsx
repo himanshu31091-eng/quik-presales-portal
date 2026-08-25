@@ -72,7 +72,7 @@ export function ToggleSwitch({
           trackSize,
           checked ? "bg-accent-600" : "bg-gray-300",
           isDisabled ? "" : "hover:brightness-95",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-1",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-700 focus-visible:ring-offset-1",
         )}
       >
         <span

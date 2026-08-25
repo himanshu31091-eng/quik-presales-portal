@@ -181,7 +181,7 @@ export function FilterPicker({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen(o => !o)}
-        className={`w-full flex items-center justify-between gap-2 px-3 py-1.5 text-xs border rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-accent-400 transition-colors ${
+        className={`w-full flex items-center justify-between gap-2 px-3 py-1.5 text-xs border rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-accent-700 transition-colors ${
           open ? "border-accent-300 ring-1 ring-accent-400" : "border-gray-200"
         }`}
       >
@@ -225,7 +225,7 @@ export function FilterPicker({
                 placeholder={placeholder}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full pl-7 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-accent-400 placeholder-gray-400"
+                className="w-full pl-7 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-accent-700 placeholder-gray-400"
               />
             </div>
           </div>

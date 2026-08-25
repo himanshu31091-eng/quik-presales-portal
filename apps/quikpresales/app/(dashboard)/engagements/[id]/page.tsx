@@ -648,7 +648,7 @@ function LogDemoForm({
             value={technology}
             onChange={(e) => setTechnology(e.target.value)}
             placeholder="e.g. Dynamics365"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-700"
           />
         </label>
 
@@ -658,7 +658,7 @@ function LogDemoForm({
             value={audience}
             onChange={(e) => setAudience(e.target.value)}
             placeholder="CFO, Finance Manager"
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-700"
           />
         </label>
 
@@ -694,7 +694,7 @@ function LogDemoForm({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-700"
           />
         </label>
       </div>
