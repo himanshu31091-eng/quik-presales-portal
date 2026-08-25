@@ -39,7 +39,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
         className={cn(
           "w-full border bg-white",
           sizeClasses,
-          "focus:outline-none focus:ring-1 focus:ring-accent-400",
+          "focus:outline-none focus:ring-1 focus:ring-accent-700",
           "disabled:opacity-50 disabled:cursor-not-allowed",
           error ? "border-red-300 focus:ring-red-400" : "border-gray-200",
           className,

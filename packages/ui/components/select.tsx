@@ -6,7 +6,7 @@ import React from "react";
  * Shared Select component — standardized native <select> wrapper.
  *
  * Matches QuikScale's form select pattern:
- * - text-sm, border-gray-200, rounded-lg, focus:ring-1 ring-accent-400
+ * - text-sm, border-gray-200, rounded-lg, focus:ring-1 ring-accent-700
  * - Optional label + error display
  */
 
@@ -68,7 +68,7 @@ export function Select({
         className={`w-full border ${SIZE_PADDING[size]} focus:outline-none focus:ring-1 bg-white transition-colors ${
           error
             ? "border-red-300 focus:ring-red-400"
-            : "border-gray-200 focus:ring-accent-400"
+            : "border-gray-200 focus:ring-accent-700"
         } ${className}`}
         {...props}
       >

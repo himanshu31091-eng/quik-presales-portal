@@ -117,7 +117,7 @@ export default function LoginPage() {
             autoComplete="username"
             value={email}
             onChange={(ev) => setEmail(ev.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-700"
           />
         </label>
 
@@ -129,7 +129,7 @@ export default function LoginPage() {
             autoComplete="current-password"
             value={password}
             onChange={(ev) => setPassword(ev.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-700"
           />
         </label>
 

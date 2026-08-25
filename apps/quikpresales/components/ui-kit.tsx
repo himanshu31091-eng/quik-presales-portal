@@ -65,7 +65,7 @@ export function ComboField({
         }}
         placeholder={placeholder ?? "Type or pick…"}
         autoComplete="off"
-        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
+        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-700"
       />
       <datalist id={listId}>
         {options.map((option) => (

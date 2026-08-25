@@ -91,7 +91,7 @@ export function RichTextField({
     // focus-within ring on the wrapper: Tiptap owns the inner contenteditable's
     // class list (which sets focus:outline-none), so the visible focus indicator
     // has to live out here (WCAG 2.4.7).
-    <div className="w-full rounded-lg border border-gray-200 overflow-hidden bg-white focus-within:ring-2 focus-within:ring-accent-500">
+    <div className="w-full rounded-lg border border-gray-200 overflow-hidden bg-white focus-within:ring-2 focus-within:ring-accent-700">
       <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-gray-200 bg-gray-50">
         <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={btn(editor.isActive("heading", { level: 1 }))} title="Heading 1" disabled={disabled}>
           <Heading1 className="h-3.5 w-3.5" />

@@ -284,7 +284,7 @@ export function UserSelect(props: UserSelectProps) {
         aria-expanded={open}
         onClick={() => { if (!disabled) { setOpen(o => !o); setSearch(""); } }}
         disabled={disabled}
-        className={`w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-xs focus:outline-none ${disabled ? "bg-gray-50 text-gray-500 cursor-not-allowed border-gray-200" : `bg-white hover:bg-gray-50 focus:ring-1 focus:ring-accent-400 ${error ? "border-red-400" : "border-gray-200"}`}`}
+        className={`w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-xs focus:outline-none ${disabled ? "bg-gray-50 text-gray-500 cursor-not-allowed border-gray-200" : `bg-white hover:bg-gray-50 focus:ring-1 focus:ring-accent-700 ${error ? "border-red-400" : "border-gray-200"}`}`}
       >
         {trigger}
         <ChevronDown className={`h-3.5 w-3.5 text-gray-400 flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -310,7 +310,7 @@ export function UserSelect(props: UserSelectProps) {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={"Search\u2026"}
-              className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent-400"
+              className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent-700"
             />
             {mode === "multi" && hasSelection && (
               <button
