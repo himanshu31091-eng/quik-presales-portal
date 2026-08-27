@@ -14,7 +14,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 
 const DAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+/** Spoken forms — "Mo" is read as meaningless initials by a screen reader. */
+const FULL_DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const FULL_MONTH_LABELS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** "17 March 2026" — a day cell's visible text is just the number, which alone says nothing. */
+function fullDateLabel(iso: string): string {
+  const d = new Date(iso + "T00:00:00");
+  if (Number.isNaN(d.getTime())) return iso;
+  return `${d.getDate()} ${FULL_MONTH_LABELS[d.getMonth()]} ${d.getFullYear()}`;
+}
 
 export interface DatePickerProps {
   /** ISO yyyy-mm-dd (single mode). Empty string when nothing picked. */
@@ -40,12 +53,31 @@ function toISO(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+/** Add `days` to an ISO date, returning a new ISO date. */
+function addDays(iso: string, days: number): string {
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return toISO(d);
+}
+
+/** Add `months` to an ISO date, clamping the day to the target month's length. */
+function addMonths(iso: string, months: number): string {
+  const d = new Date(iso + "T00:00:00");
+  const day = d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + months);
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, lastDay));
+  return toISO(d);
+}
+
 export function DatePicker({
   value, onChange, placeholder = "Select date", disabled, weekStartDay = 0, className = "", min, max,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const today = useMemo(() => new Date(), []);
   const todayISO = useMemo(() => toISO(today), [today]);
 
@@ -58,6 +90,13 @@ export function DatePicker({
   }, [value, today]);
   const [view, setView] = useState<Date>(initialMonth);
 
+  /**
+   * The roving-focus date — which day cell is tabbable and takes DOM focus.
+   * Tracked separately from `value` because moving around the calendar must not
+   * change the selection until the user actually commits with Enter/Space.
+   */
+  const [focusedISO, setFocusedISO] = useState<string>("");
+
   useEffect(() => {
     if (!open) return;
     function handler(e: MouseEvent) {
@@ -67,15 +106,78 @@ export function DatePicker({
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
+  // On open, start focus on the selected date, else today, else the first day
+  // the min/max window allows — and show the month that date lives in.
+  useEffect(() => {
+    if (!open) return;
+    const candidate = value || todayISO;
+    setFocusedISO(candidate);
+    const d = new Date(candidate + "T00:00:00");
+    if (!Number.isNaN(d.getTime())) setView(new Date(d.getFullYear(), d.getMonth(), 1));
+  }, [open, value, todayISO]);
+
+  // Move real DOM focus to whichever day cell is currently the roving target.
+  // Keyed on `view` too, so a month change from arrowing past an edge lands on
+  // the right cell once the new month has rendered.
+  useEffect(() => {
+    if (!open || !focusedISO) return;
+    const cell = gridRef.current?.querySelector<HTMLButtonElement>(`[data-iso="${focusedISO}"]`);
+    cell?.focus();
+  }, [open, focusedISO, view]);
+
   function closeAndRefocus() {
     setOpen(false);
     triggerRef.current?.focus();
   }
 
+  /** Move the roving focus, pulling the visible month along when it crosses an edge. */
+  function moveFocus(nextISO: string) {
+    setFocusedISO(nextISO);
+    const d = new Date(nextISO + "T00:00:00");
+    if (Number.isNaN(d.getTime())) return;
+    if (d.getFullYear() !== view.getFullYear() || d.getMonth() !== view.getMonth()) {
+      setView(new Date(d.getFullYear(), d.getMonth(), 1));
+    }
+  }
+
+  /**
+   * Calendar-grid keys, per the ARIA authoring practices for a date picker:
+   * arrows by day/week, Home/End within the week, PageUp/PageDown by month
+   * (with Shift, by year). Escape closes.
+   */
   function handlePopoverKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Escape") {
       e.stopPropagation();
       closeAndRefocus();
+      return;
+    }
+    if (!focusedISO) return;
+
+    let next: string | null = null;
+    switch (e.key) {
+      case "ArrowLeft": next = addDays(focusedISO, -1); break;
+      case "ArrowRight": next = addDays(focusedISO, 1); break;
+      case "ArrowUp": next = addDays(focusedISO, -7); break;
+      case "ArrowDown": next = addDays(focusedISO, 7); break;
+      case "Home": {
+        const d = new Date(focusedISO + "T00:00:00");
+        next = addDays(focusedISO, -((d.getDay() - weekStartDay + 7) % 7));
+        break;
+      }
+      case "End": {
+        const d = new Date(focusedISO + "T00:00:00");
+        next = addDays(focusedISO, 6 - ((d.getDay() - weekStartDay + 7) % 7));
+        break;
+      }
+      case "PageUp": next = addMonths(focusedISO, e.shiftKey ? -12 : -1); break;
+      case "PageDown": next = addMonths(focusedISO, e.shiftKey ? 12 : 1); break;
+      default: return;
+    }
+
+    if (next) {
+      // Stop the arrow keys from scrolling the page behind the popover.
+      e.preventDefault();
+      moveFocus(next);
     }
   }
 
@@ -93,6 +195,13 @@ export function DatePicker({
     }
     return cells;
   }, [view, weekStartDay]);
+
+  /** The same 42 cells, chunked into 6 rows so the grid has real row semantics. */
+  const weeks = useMemo(() => {
+    const rows: (typeof grid)[] = [];
+    for (let i = 0; i < grid.length; i += 7) rows.push(grid.slice(i, i + 7));
+    return rows;
+  }, [grid]);
 
   const dayLabels = useMemo(() => {
     return [...DAY_LABELS.slice(weekStartDay), ...DAY_LABELS.slice(0, weekStartDay)];
@@ -134,53 +243,84 @@ export function DatePicker({
           {/* Header */}
           <div className="flex items-center justify-between mb-2">
             <button type="button" onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))}
-              className="p-1 rounded hover:bg-gray-100">
+              aria-label="Previous month"
+              className="p-1 rounded hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-700">
               <ChevronLeft className="h-3.5 w-3.5" />
             </button>
-            <span className="text-xs font-semibold">
-              {MONTH_LABELS[view.getMonth()]} {view.getFullYear()}
+            {/* aria-live so changing month by button or PageUp/PageDown is announced. */}
+            <span className="text-xs font-semibold" aria-live="polite">
+              {FULL_MONTH_LABELS[view.getMonth()]} {view.getFullYear()}
             </span>
             <button type="button" onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
-              className="p-1 rounded hover:bg-gray-100">
+              aria-label="Next month"
+              className="p-1 rounded hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-700">
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
           </div>
 
-          {/* Day labels */}
-          <div className="grid grid-cols-7 gap-1 mb-1">
-            {dayLabels.map((l, i) => (
-              <div key={i} className="text-[10px] font-semibold text-gray-400 text-center">{l}</div>
-            ))}
-          </div>
-
-          {/* Date grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {grid.map((c) => {
-              const selected = c.iso === value;
-              const isToday = c.iso === todayISO;
-              const allowed = isInRange(c.iso);
-              return (
-                <button
-                  type="button"
-                  key={c.iso}
-                  disabled={!allowed}
-                  onClick={() => { onChange(c.iso); closeAndRefocus(); }}
-                  className={`text-[11px] h-7 w-7 rounded flex items-center justify-center transition-colors ${
-                    !c.inMonth ? "text-gray-300" : ""
-                  } ${
-                    selected
-                      ? "bg-accent-500 text-white font-semibold"
-                      : isToday
-                        ? "border border-accent-400 text-accent-700 hover:bg-accent-50"
-                        : allowed
-                          ? "hover:bg-gray-100 text-gray-700"
-                          : "text-gray-300 cursor-not-allowed"
-                  }`}
+          {/* Date grid. role="grid" + row/gridcell so a screen reader announces
+              this as a calendar and reads the column header for each day. */}
+          <div ref={gridRef} role="grid" aria-label="Calendar" className="space-y-1">
+            <div role="row" className="grid grid-cols-7 gap-1 mb-1">
+              {dayLabels.map((l, i) => (
+                <div
+                  key={i}
+                  role="columnheader"
+                  aria-label={FULL_DAY_LABELS[(weekStartDay + i) % 7]}
+                  className="text-[10px] font-semibold text-gray-500 text-center"
                 >
-                  {c.d.getDate()}
-                </button>
-              );
-            })}
+                  {l}
+                </div>
+              ))}
+            </div>
+
+            {weeks.map((week, wi) => (
+              <div role="row" key={wi} className="grid grid-cols-7 gap-1">
+                {week.map((c) => {
+                  const selected = c.iso === value;
+                  const isToday = c.iso === todayISO;
+                  const allowed = isInRange(c.iso);
+                  // Exactly one cell is tabbable (roving tabindex) — otherwise
+                  // Tab would walk through all 42 days before leaving the popover.
+                  const isFocusTarget = c.iso === focusedISO;
+                  return (
+                    <button
+                      type="button"
+                      key={c.iso}
+                      data-iso={c.iso}
+                      role="gridcell"
+                      tabIndex={isFocusTarget ? 0 : -1}
+                      // aria-disabled rather than the `disabled` attribute: a
+                      // disabled button cannot take focus, which would trap
+                      // arrow-key navigation at the edge of the min/max window.
+                      aria-disabled={!allowed || undefined}
+                      aria-selected={selected}
+                      aria-current={isToday ? "date" : undefined}
+                      aria-label={fullDateLabel(c.iso)}
+                      onFocus={() => setFocusedISO(c.iso)}
+                      onClick={() => {
+                        if (!allowed) return;
+                        onChange(c.iso);
+                        closeAndRefocus();
+                      }}
+                      className={`text-[11px] h-7 w-7 rounded flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-700 ${
+                        !c.inMonth ? "text-gray-300" : ""
+                      } ${
+                        selected
+                          ? "bg-accent-500 text-white font-semibold"
+                          : isToday
+                            ? "border border-accent-400 text-accent-700 hover:bg-accent-50"
+                            : allowed
+                              ? "hover:bg-gray-100 text-gray-700"
+                              : "text-gray-300 cursor-not-allowed"
+                      }`}
+                    >
+                      {c.d.getDate()}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </div>
 
           {/* Footer */}
